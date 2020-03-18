@@ -1,0 +1,4 @@
+#+TITLE: Lambda x86
+#+AUTHOR: Ashton Wiersdorf
+
+This is a compiler for a typed lambda calculus targeting the x86 architecture. Includes a parser, type checker, and compiler.
