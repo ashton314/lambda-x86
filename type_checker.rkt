@@ -44,7 +44,10 @@
     ;; the type of the argument to the contiuation (i.e. the value
     ;; that is being passed on) and then annotate that value as it
     ;; gets passed down the tree.
-    (`(kapp ,func ,cont . ,args) 42)
+    (`(kapp ,cont . ,args)
+     (let* ([cont-node (parse cont)]
+            [arg-nodes (map (λ (arg) (parse arg)) args)])
+       (node/app 'void cont-node arg-nodes)))
 
     ;; Integer primitives of two arguments
     [`(,(? bin-int-prim? op) ,x1 ,x2)
@@ -122,8 +125,6 @@
               [checked-body (check body ret-type lambda-ctx)])
          (node/lambda (type/arrow parms-types ret-type) parms checked-body))
        ]
-
-
 
       ;; TODO: maybe add an arm in here for lambdas of unknown types
       ;; that we can derive a polymorphic type for
