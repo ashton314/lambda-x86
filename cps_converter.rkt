@@ -47,7 +47,7 @@
        (apply-κ q n)]
       [`(let ([,x ,e₀]) ,e₁)
        (cps e₀ `(κ (,x) ,(cps e₁ q)))]
-      [`(λ ,(? param-list? xs) ,e)
+      [`(,(? lambda? _) ,(? param-list? xs) ,e)
        (atomize `(λ ,xs ,e) (λ (λxs.e) (apply-κ q λxs.e)))]
       [`(μ (,(? symbol? f) . ,(? param-list? xs))  ,e)
        (atomize `(μ (,f . ,xs) ,e) (λ (μfxs.e) (apply-κ q μfxs.e)))]

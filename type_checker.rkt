@@ -40,6 +40,12 @@
             [arg-nodes (map (λ (arg) (parse arg)) args)])
        (node/app 'unknown func-node arg-nodes))]
 
+    ;; For type-checking the continuation, I think we can synthesize
+    ;; the type of the argument to the contiuation (i.e. the value
+    ;; that is being passed on) and then annotate that value as it
+    ;; gets passed down the tree.
+    (`(kapp ,func ,cont . ,args) 42)
+
     ;; Integer primitives of two arguments
     [`(,(? bin-int-prim? op) ,x1 ,x2)
      (let* ([x1-node (parse x1)]
