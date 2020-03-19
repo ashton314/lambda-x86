@@ -6,6 +6,8 @@
 (module+ test
   (require rackunit))
 
+(provide parse typecheck convert-parse)
+
 ;; Query Language Parser
 
 (define (lambda? sym) (and (member sym '(lambda λ)) (symbol? sym)))
