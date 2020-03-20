@@ -1,0 +1,15 @@
+#+TITLE: Lambda-x86 Project Notes
+
+I've decided to build a quick-and-dirty compiler following _An Incremental Approach to Compiler Construction_ by Abdulaziz Ghuloum. I can build a bigger compiler later.
+
+* Tasks
+** TODO Fix up parser to handle booleans
+** TODO Fix up type checker                                         :discuss:
+I wonder if there's a way to use the type information to make my assembler more efficient. (I bet there is; I'll leave that for an enhancement.)
+** TODO Use type information to improve instruction choice      :enhancement:
+* Resources
+** An Incremental Approach to Compiler Construction :ATTACH:
+   :PROPERTIES:
+   :Attachments: An%20Incremental%20Approach%20to%20Compiler%20Construction.pdf
+   :ID:       91BA83F1-5BD6-42B1-BC3F-C3CEE4168023
+   :END:

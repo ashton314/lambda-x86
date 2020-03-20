@@ -11,6 +11,9 @@
   ;; TODO: I'd like to generalize this so that it can handle memory locations
   (format "movq ~a, ~a" val dest))
 
+(define (addq reg-a reg-b)
+  (format "addq ~a, ~a" reg-a reg-b))
+
 (define (immediate int)
   (format "$~a" int))
 
