@@ -17,6 +17,8 @@
 int main(int argc, char** argv) {
   int val = scheme_entry();
 
+  printf("\n\n>>>LAMBDA x86 FINISHED<<<\n\n");
+
   if ((val & fixnum_mask) == fixnum_tag) {
     printf("%d\n", val >> fixnum_shift);
   }

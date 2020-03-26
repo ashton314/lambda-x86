@@ -14,22 +14,20 @@
 (define (compile expr)
   (delete-file asm-file)
   (global-prelude)
-  (compile-expr expr '())
+  (compile-expr expr '() (- wordsize))
   (emit-string (ret)))
 
-(define (compile-expr expr env [emit emit-string])
+(define (compile-expr expr env stack-bottom [emit emit-string])
   (match expr
 
     [(node/immediate 'integer num)
      (emit (movq (immediate num) (reg 'ret-val)))]
 
-    [(node/prim type name arity args)
-     (foreach-shortest (λ (arg reg-idx)
-                         (compile-expr arg env emit)
-                         (emit (movq (reg 'ret-val) (reg reg-idx))))
-                       args '(param-1 param-2 param-3 param-4))
-     (compile-prim type name arity env emit)]
-
+    [(node/prim type name 2 args)
+     (compile-expr (car args) env stack-bottom emit)
+     (emit (movq (reg 'ret-val) (stack stack-bottom)))
+     (compile-expr (cadr args) env (- stack-bottom wordsize) emit)
+     (emit (addq (stack stack-bottom) (reg 'ret-val)))]
     ))
 
 (define (compile-prim type name arity env emit)
@@ -73,7 +71,7 @@
     (check-= i 103 0))]
 
 (define (write-to-asm thing)
-  (println (list 'thing thing))
+  (println (list 'emit: thing))
   (with-output-to-file asm-file (λ () (displayln thing)) #:exists 'append))
 
 (define (emit-string thing [writer write-to-asm])
