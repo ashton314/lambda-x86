@@ -5,6 +5,12 @@
 (module+ test
   (require rackunit))
 
+;; constants
+(define fixnum-shift 2)
+(define fixnum-tag 0)
+(define fixnum-mask 3)
+(define empty-list )
+
 ;; These by and large just format the assembly
 
 (define (movq val dest)
@@ -15,7 +21,7 @@
   (format "addq ~a, ~a" reg-a reg-b))
 
 (define (immediate int)
-  (format "$~a" int))
+  (format "$~a" (arithmetic-shift int fixnum-shift)))
 
 (define (ret) "ret")
 

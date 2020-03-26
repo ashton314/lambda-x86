@@ -25,8 +25,9 @@
 
     [(node/prim type name arity args)
      (foreach-shortest (λ (arg reg-idx)
-                 (compile-expr arg env emit) (emit (movq (reg 'ret-val) (reg reg-idx))))
-               args '(param-1 param-2 param-3 param-4))
+                         (compile-expr arg env emit)
+                         (emit (movq (reg 'ret-val) (reg reg-idx))))
+                       args '(param-1 param-2 param-3 param-4))
      (compile-prim type name arity env emit)]
 
     ))
