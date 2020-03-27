@@ -20,7 +20,7 @@
 (define (compile-expr expr env stack-bottom [emit emit-string])
   (match expr
 
-    [(node/immediate 'integer num)
+    [(node/immediate _ num)
      (emit (movq (immediate num) (reg 'ret-val)))]
 
     [(node/prim type name 2 args)
@@ -28,9 +28,27 @@
      (emit (movq (reg 'ret-val) (stack stack-bottom)))
      (compile-expr (car args) env (- stack-bottom wordsize) emit)
      (emit ((prim-bin-op name) (stack stack-bottom) (reg 'ret-val)))]
+
+    [(node/if type condition t-case f-case)
+     (let ([l0 (label (gensym 'cond))]
+           [l1 (label (gensym 'cond_branch))])
+       (compile-expr condition env stack-bottom emit)
+       (emit (cmpq (immediate #f) (reg 'ret-val)))
+       (emit (je l0))                   ; jump to the false branch
+       (compile-expr t-case env stack-bottom emit)
+       (emit (jmp l1))
+       (emit l0)
+       (compile-expr f-case env stack-bottom emit)
+       (emit l1))]
+
+    [(node/lambda type params body)
+     (compile-lambda type params body env stack-bottom emit)
+     ]
+
     ))
 
-
+(define (compile-lambda type params body env stack-bottom [emit emit-string])
+  (error "Darn. This is a hard problem."))
 
 (define (env/new) '())
 

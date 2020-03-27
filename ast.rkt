@@ -58,6 +58,14 @@
   [(define (typeof node) (node/var-type node))
    (define (set-type! node new-type) (set-node/var-type! node new-type))])
 
+(struct node/if
+  (type condition t-case f-case)
+  #:mutable #:transparent
+  #:methods gen:node
+  [(define (typeof node) (node/if-type node))
+   (define (set-type! node new-type) (set-node/if-type! node new-type))])
+
+
 ;; A lambda
 (struct node/lambda
   (type params body)

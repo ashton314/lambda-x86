@@ -2,8 +2,14 @@
 
 I've decided to build a quick-and-dirty compiler following _An Incremental Approach to Compiler Construction_ by Abdulaziz Ghuloum. I can build a bigger compiler later.
 
+I've also decided to ditch continuation-passing style for this first draft. I'll get my head around regular recursive implementations first.
+
 * Tasks
-** TODO Fix up parser to handle booleans
+** DONE Fix up parser to handle booleans
+   CLOSED: [2020-03-26 Thu 22:06]
+   :LOGBOOK:
+   - State "DONE"       from "TODO"       [2020-03-26 Thu 22:06]
+   :END:
 ** TODO Fix up type checker                                         :discuss:
 I wonder if there's a way to use the type information to make my assembler more efficient. (I bet there is; I'll leave that for an enhancement.)
 ** TODO Use type information to improve instruction choice      :enhancement:

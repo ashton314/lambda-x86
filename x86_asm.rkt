@@ -11,6 +11,9 @@
 (define fixnum-mask 3)
 (define empty-list 47)
 
+(define true-rep 159)
+(define false-rep 31)
+
 (define wordsize 8)                     ;Assuming 64-bit architecture
 
 ;; These by and large just format the assembly
@@ -30,14 +33,34 @@
   ;; a shift instruction to correct
   (format "imulq ~a, ~a\nshr $~a, ~a" reg-a reg-b fixnum-shift reg-b))
 
+(define (num-equals reg-a reg-b)
+  (format "xorq ~a, ~a\nnotq ~a\n" reg-a reg-b reg-b))
+
 (define (prim-bin-op name)
   (match name
     ['+ addq]
     ['- subq]
-    ['* mulq]))
+    ['* mulq]
+    ['= num-equals]))
 
-(define (immediate int)
-  (format "$~a" (arithmetic-shift int fixnum-shift)))
+(define (cmpq a b)
+  (format "cmpq ~a, ~a" a b))
+
+(define (je loc)
+  (format "je ~a" loc))
+
+(define (jmp loc)
+  (format "jmp ~a" loc))
+
+(define (immediate val)
+  (match val
+    [(? integer?)
+     (format "$~a" (arithmetic-shift val fixnum-shift))]
+    [(? boolean?)
+     (format "$~a" (if val true-rep false-rep))]))
+
+(define (label sym)
+  (format "_~a:" sym))
 
 (define (ret) "ret")
 

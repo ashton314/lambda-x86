@@ -11,7 +11,7 @@
 ;; Query Language Parser
 
 (define (lambda? sym) (and (member sym '(lambda λ)) (symbol? sym)))
-(define (bin-int-prim? sym) (and (member sym '(+ - * /)) (symbol? sym)))
+(define (bin-int-prim? sym) (and (member sym '(+ - * / =)) (symbol? sym)))
 
 ;; Convert into CPS and parse
 (define (convert-parse expr)
@@ -21,12 +21,10 @@
 (define (parse expr)
   (match expr
     ;; Lambda
-    [`(,(? lambda? _) (,_ . ,xs) (-> ,param-types ... ,body-type) ,body)
-     ;; First argument is the continuation, so pop it off
+    [`(,(? lambda? _) ,xs (-> ,param-types ... ,body-type) ,body)
      (node/lambda (type/arrow param-types body-type) xs (parse body))]
 
-    [`(,(? lambda? _) (,_ . ,xs) ,body)
-     ;; First argument is the continuation, so pop it off
+    [`(,(? lambda? _) ,xs ,body)
      (node/lambda 'unknown xs (parse body))]
 
     ;; Type annotation
@@ -34,8 +32,11 @@
     [`(ann ,e ,t)
      (node/ann t (parse e))]
 
+    [`(if ,condition ,t-arm ,f-arm)
+     (node/if 'unknown (parse condition) (parse t-arm) (parse f-arm))]
+
     ;; Function application
-    [`(app ,func ,cont . ,args)
+    [`(app ,func ,args)
      ;; TODO: What do I do with cont?
      ;; Do I parse it? I don't think so… it doesn't have a value because it diverges, right?
      (let* ([func-node (parse func)]
@@ -46,10 +47,10 @@
     ;; the type of the argument to the contiuation (i.e. the value
     ;; that is being passed on) and then annotate that value as it
     ;; gets passed down the tree.
-    (`(kapp ,cont . ,args)
+    [`(kapp ,cont . ,args)
      (let* ([cont-node (parse cont)]
             [arg-nodes (map (λ (arg) (parse arg)) args)])
-       (node/app 'void cont-node arg-nodes)))
+       (node/app 'void cont-node arg-nodes))]
 
     ;; Integer primitives of two arguments
     [`(,(? bin-int-prim? op) ,x1 ,x2)
@@ -63,7 +64,9 @@
 
     ;; Primitives
     [(? exact-integer? num) (node/immediate 'integer num)]
-    [(? string? str) (node/immediate 'string str)]))
+    [(? string? str) (node/immediate 'string str)]
+    [(? boolean? bool) (node/immediate 'boolean bool)]
+    ))
 
 ;; Set the type of a node to `type`. If there's already a type
 ;; associated with this node and it doesn't match, throw a type error.

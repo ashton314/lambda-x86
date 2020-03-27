@@ -19,7 +19,9 @@ int main(int argc, char** argv) {
 
   printf("\n\n>>>LAMBDA x86 FINISHED<<<\n\n");
 
-  if ((val & fixnum_mask) == fixnum_tag) {
+  if ((val & bool_mask) == bool_tag) {
+    printf((val >> bool_shift) ? "#t\n" : "#f\n");
+  } else if ((val & fixnum_mask) == fixnum_tag) {
     printf("%d\n", val >> fixnum_shift);
   }
   else if (val == empty_list) {
@@ -28,11 +30,8 @@ int main(int argc, char** argv) {
   else if ((val & char_mask) == char_tag) {
     printf("%c\n", val >> char_shift);
   }
-  else if ((val & bool_mask) == bool_tag) {
-    printf((val >> bool_shift) ? "#t" : "#f");
-  }
   else {
-    printf("#<unknown value>\n");
+    printf("#<unknown value: %x>\n", val);
   }
   return 0;
 }
