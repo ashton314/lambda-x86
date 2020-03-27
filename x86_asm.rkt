@@ -22,6 +22,20 @@
 (define (addq reg-a reg-b)
   (format "addq ~a, ~a" reg-a reg-b))
 
+(define (subq reg-a reg-b)
+  (format "subq ~a, ~a" reg-a reg-b))
+
+(define (mulq reg-a reg-b)
+  ;; This emits two instructions: first the multiply instruction, then
+  ;; a shift instruction to correct
+  (format "imulq ~a, ~a\nshr $~a, ~a" reg-a reg-b fixnum-shift reg-b))
+
+(define (prim-bin-op name)
+  (match name
+    ['+ addq]
+    ['- subq]
+    ['* mulq]))
+
 (define (immediate int)
   (format "$~a" (arithmetic-shift int fixnum-shift)))
 

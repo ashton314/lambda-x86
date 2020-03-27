@@ -24,18 +24,13 @@
      (emit (movq (immediate num) (reg 'ret-val)))]
 
     [(node/prim type name 2 args)
-     (compile-expr (car args) env stack-bottom emit)
+     (compile-expr (cadr args) env stack-bottom emit)
      (emit (movq (reg 'ret-val) (stack stack-bottom)))
-     (compile-expr (cadr args) env (- stack-bottom wordsize) emit)
-     (emit (addq (stack stack-bottom) (reg 'ret-val)))]
+     (compile-expr (car args) env (- stack-bottom wordsize) emit)
+     (emit ((prim-bin-op name) (stack stack-bottom) (reg 'ret-val)))]
     ))
 
-(define (compile-prim type name arity env emit)
-  (match name
-    ['+
-     (emit (addq (reg 'param-1) (reg 'param-2)))
-     (emit (movq (reg 'param-2) (reg 'ret-val)))
-     ]))
+
 
 (define (env/new) '())
 
