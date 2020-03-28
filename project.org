@@ -19,3 +19,49 @@ I wonder if there's a way to use the type information to make my assembler more 
    :Attachments: An%20Incremental%20Approach%20to%20Compiler%20Construction.pdf
    :ID:       91BA83F1-5BD6-42B1-BC3F-C3CEE4168023
    :END:
+** Seeing what C compiles something to
+
+Write the C code to a file called ~foo.c~; example:
+
+#+BEGIN_SRC c
+int main() {
+  int foo = 1;
+  int bar = 2;
+  return foo == bar;
+}
+#+END_SRC
+
+Then compile with:
+
+#+BEGIN_SRC sh
+
+  gcc -fomit-frame-pointer -S foo.c
+
+#+END_SRC
+
+That should give you a file named =foo.s= that looks like:
+
+#+BEGIN_SRC asm
+
+  	.section	__TEXT,__text,regular,pure_instructions
+	.build_version macos, 10, 15	sdk_version 10, 15, 4
+	.globl	_main                   ## -- Begin function main
+	.p2align	4, 0x90
+_main:                                  ## @main
+	.cfi_startproc
+## %bb.0:
+	movl	$0, -4(%rsp)
+	movl	$1, -8(%rsp)
+	movl	$2, -12(%rsp)
+	movl	-8(%rsp), %eax
+	cmpl	-12(%rsp), %eax
+	sete	%cl
+	andb	$1, %cl
+	movzbl	%cl, %eax
+	retq
+	.cfi_endproc
+                                        ## -- End function
+
+.subsections_via_symbols
+
+#+END_SRC
