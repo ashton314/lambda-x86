@@ -15,6 +15,7 @@ I've also decided to ditch continuation-passing style for this first draft. I'll
    :LOGBOOK:
    - State "DONE"       from "TODO"       [2020-03-27 Fri 20:30]
    :END:
+** TODO Write a tortue test for the compiler thus far
 ** TODO Fix up type checker                                     :enhancement:
 I wonder if there's a way to use the type information to make my assembler more efficient. (I bet there is; I'll leave that for an enhancement.)
 ** TODO Use type information to improve instruction choice      :enhancement:
