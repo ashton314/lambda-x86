@@ -79,8 +79,7 @@
                 (node/let 'unknown
                           (list (node/let-binding 'unknown 'x (node/immediate 'integer 1))
                                 (node/let-binding 'unknown 'y (node/immediate 'integer 2)))
-                          (node/prim 'integer '+ 2 (list (node/var 'unknown 'x) (node/var 'unknown 'y)))))
-  ]
+                          (node/prim 'integer '+ 2 (list (node/var 'unknown 'x) (node/var 'unknown 'y)))))]
 
 ;; Set the type of a node to `type`. If there's already a type
 ;; associated with this node and it doesn't match, throw a type error.

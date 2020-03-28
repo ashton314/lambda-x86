@@ -56,10 +56,10 @@
   (format "cmpq ~a, ~a" a b))
 
 (define (je loc)
-  (format "je ~a" loc))
+  (format "je _~a" loc))
 
 (define (jmp loc)
-  (format "jmp ~a" loc))
+  (format "jmp _~a" loc))
 
 (define (immediate val)
   (match val

@@ -30,46 +30,66 @@
      (emit ((prim-bin-op name) (stack stack-bottom) (reg 'ret-val)))]
 
     [(node/if type condition t-case f-case)
-     (let ([l0 (label (gensym 'cond))]
-           [l1 (label (gensym 'cond_branch))])
+     (let ([l0 (gensym 'cond)]
+           [l1 (gensym 'cond_branch)])
        (compile-expr condition env stack-bottom emit)
        (emit (cmpq (immediate #f) (reg 'ret-val)))
        (emit (je l0))                   ; jump to the false branch
        (compile-expr t-case env stack-bottom emit)
        (emit (jmp l1))
-       (emit l0)
+       (emit (label l0))
        (compile-expr f-case env stack-bottom emit)
-       (emit l1))]
+       (emit (label l1)))]
 
     [(node/lambda type params body)
      (compile-lambda type params body env stack-bottom emit)
      ]
 
+    [(node/let type bindings body)
+     (compile-let type bindings body env stack-bottom emit)]
+
+    [(node/var type name)
+     (emit (movq (stack (or (env/var-info env name) (error 'undefined-variable)))
+                 (reg 'ret-val)))]
+
     ))
+
+(define (compile-let type bindings body env stack-bottom [emit emit-string])
+  (if (null? bindings)
+      (compile-expr body env stack-bottom emit)
+      (let ([b (car bindings)])
+        (compile-expr (node/let-binding-value b) env stack-bottom emit)
+        (emit (movq (reg 'ret-val) (stack stack-bottom)))
+        (compile-let type (cdr bindings) body
+                     (env/extend env
+                                 (node/let-binding-variable b)
+                                 stack-bottom)
+                     (- stack-bottom wordsize)
+                     emit))))
 
 (define (compile-lambda type params body env stack-bottom [emit emit-string])
   (error "Darn. This is a hard problem."))
 
 (define (env/new) '())
 
-;; Returns the type of a variable from the env
-(define (env/var-type env var)
+;; Returns the info associated with a variable from the environment
+(define (env/var-info env var)
   (match env
     [(list) #f]                   ; Not in env
     [(cons (cons v t) rst)
      #:when (eq? v var)
      t]
-    [(cons _ rst) (env/var-type rst var)]))
+    [(cons _ rst) (env/var-info rst var)]))
 
 ;; Extend a env with a value
-(define (env/extend env var type)
-  (cons (cons var type) env))
+(define (env/extend env var info)
+  (cons (cons var info) env))
 
 [module+ test
   (let ([ctx (env/extend (env/new) 'foo 'integer)])
-    (check-eq? (env/var-type ctx 'foo) 'integer)
-    (check-eq? (env/var-type (env/extend ctx 'bar 'string) 'foo) 'integer)
-    (check-eq? (env/var-type (env/extend ctx 'bar 'string) 'bar) 'string))]
+    (check-eq? (env/var-info ctx 'foo) 'integer)
+    (check-eq? (env/var-info (env/extend ctx 'bar 'string) 'foo) 'integer)
+    (check-eq? (env/var-info (env/extend ctx 'bar 'string) 'bar) 'string))]
 
 (define (foreach-shortest proc . lists)
   (if (findf (λ (l) (eq? l '())) lists)
