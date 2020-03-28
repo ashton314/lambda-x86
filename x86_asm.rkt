@@ -11,6 +11,9 @@
 (define fixnum-mask 3)
 (define empty-list 47)
 
+(define bool-shift 7)
+(define bool-tag 31)
+
 (define true-rep 159)
 (define false-rep 31)
 
@@ -34,7 +37,13 @@
   (format "imulq ~a, ~a\nshr $~a, ~a" reg-a reg-b fixnum-shift reg-b))
 
 (define (num-equals reg-a reg-b)
-  (format "xorq ~a, ~a\nnotq ~a\n" reg-a reg-b reg-b))
+  (format "cmpq ~a, ~a\nsete ~a\nmovzbq ~a, ~a\nshl $~a, ~a\nxorq $~a, ~a"
+          reg-a reg-b                         ; cmpq args
+          (reg 'ret-val-small)                ; sete
+          (reg 'ret-val-small) (reg 'ret-val) ; movzbq
+          bool-shift (reg 'ret-val)           ; shl
+          bool-tag (reg 'ret-val)             ; xorq
+          ))
 
 (define (prim-bin-op name)
   (match name
@@ -80,12 +89,13 @@
 
 (define (reg reg-name)
   (match reg-name
-    ['ret-val "%rax"]
-    ['stack   "%rsp"]
-    ['param-1 "%rdi"]
-    ['param-2 "%rsi"]
-    ['param-3 "%rdx"]
-    ['param-4 "%rcx"]))
+    ['ret-val        "%rax"]
+    ['ret-val-small  "%al"]
+    ['stack          "%rsp"]
+    ['param-1        "%rdi"]
+    ['param-2        "%rsi"]
+    ['param-3        "%rdx"]
+    ['param-4        "%rcx"]))
 
 [module+ test
   (check-equal? (mem #:offset 42) "42")
