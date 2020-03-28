@@ -35,8 +35,14 @@
     [`(if ,condition ,t-arm ,f-arm)
      (node/if 'unknown (parse condition) (parse t-arm) (parse f-arm))]
 
+    [`(let ([,(? symbol? var) ,val] ...)
+        ,body)
+     (node/let 'unknown
+               (map (λ (var val) (node/let-binding 'unknown var (parse val))) var val)
+               (parse body))]
+
     ;; Function application
-    [`(app ,func ,args)
+    [`(app ,func . ,args)
      ;; TODO: What do I do with cont?
      ;; Do I parse it? I don't think so… it doesn't have a value because it diverges, right?
      (let* ([func-node (parse func)]
@@ -68,6 +74,14 @@
     [(? boolean? bool) (node/immediate 'boolean bool)]
     ))
 
+[module+ test
+  (check-equal? (parse '(let ([x 1] [y 2]) (+ x y)))
+                (node/let 'unknown
+                          (list (node/let-binding 'unknown 'x (node/immediate 'integer 1))
+                                (node/let-binding 'unknown 'y (node/immediate 'integer 2)))
+                          (node/prim 'integer '+ 2 (list (node/var 'unknown 'x) (node/var 'unknown 'y)))))
+  ]
+
 ;; Set the type of a node to `type`. If there's already a type
 ;; associated with this node and it doesn't match, throw a type error.
 (define (resolve-type! node type)
@@ -84,9 +98,9 @@
   (or (eq? t1 t2) (polymorphic? t2)))
 
 [module+ test
-  (check-equal? (parse '(lambda (k x) x))
+  (check-equal? (parse '(lambda (x) x))
                 (node/lambda 'unknown '(x) (node/var 'unknown 'x)))
-  (check-equal? (parse '(lambda (k x) (app (lambda (k1 y) y) *k* 42)))
+  (check-equal? (parse '(lambda (x) (app (lambda (y) y) 42)))
                 (node/lambda 'unknown '(x) (node/app 'unknown (node/lambda 'unknown '(y) (node/var 'unknown 'y)) (list (node/immediate 'integer 42)))))
 
   (check-exn exn:fail? (lambda () (resolve-type! (node/app 'foo 'bar 'baz) 'zoop)))

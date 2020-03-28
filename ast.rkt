@@ -16,15 +16,25 @@
 ;;  - foreign (foreign function---look up in db for definition)
 ;;  - var (variable reference)
 ;;  - lambda (lambda function)
-;;
+;;  - let
 ;;
 ;; Observable types: (these are the names used in the program)
 ;;  - integer
-;;  - string
 ;;  - boolean
+;;  - character
 ;;
 ;; Opaque types:
 ;;  - (function (arg-type ...) return-type)
+
+#;(define-syntax defnode
+  (syntax-rules ()
+    [(defnode name (fields ...))
+     (struct node/name
+       (type fields ...)
+       #:mutable #:transparent
+       #:methods gen:node
+       ;; Foo... how do I do this part? I don't know how to build up symbols and intern them
+       )]))
 
 ;; Function application
 (struct node/app
@@ -65,6 +75,19 @@
   [(define (typeof node) (node/if-type node))
    (define (set-type! node new-type) (set-node/if-type! node new-type))])
 
+(struct node/let
+  (type bindings body)
+  #:mutable #:transparent
+  #:methods gen:node
+  [(define (typeof node) (node/let-type node))
+   (define (set-type! node new-type) (set-node/let-type! node new-type))])
+
+(struct node/let-binding
+  (type variable value)
+  #:mutable #:transparent
+  #:methods gen:node
+  [(define (typeof node) (node/let-binding-type node))
+   (define (set-type! node new-type) (set-node/let-binding-type! node new-type))])
 
 ;; A lambda
 (struct node/lambda
