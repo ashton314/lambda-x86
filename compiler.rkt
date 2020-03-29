@@ -23,7 +23,19 @@
     [(node/immediate _ num)
      (emit (movq (immediate num) (reg 'ret-val)))]
 
+    [(node/prim type 'cons 2 args)
+     (compile-expr (cadr args) env stack-bottom emit)                ; compile the cdr
+     (emit (movq (reg 'ret-val) (stack stack-bottom)))               ; save on stack
+     (compile-expr (car args) env (- stack-bottom wordsize) emit)    ; compile the car
+     (emit (movq (reg 'ret-val) (heap 0)))                           ; copy car to free pointer
+     (emit (movq (stack stack-bottom) (reg 'ret-val)))               ; copy the cdr to next area
+     (emit (movq (reg 'ret-val) (heap wordsize)))
+     (emit (movq (reg 'heap) (reg 'ret-val)))
+     (emit (orq (raw-immediate 1) (reg 'ret-val)))
+     (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))]
+
     [(node/prim type name 2 args)
+     ;; These are in a funky order because `-` is not communative
      (compile-expr (cadr args) env stack-bottom emit)
      (emit (movq (reg 'ret-val) (stack stack-bottom)))
      (compile-expr (car args) env (- stack-bottom wordsize) emit)
@@ -42,8 +54,7 @@
        (emit (label l1)))]
 
     [(node/lambda type params body)
-     (compile-lambda type params body env stack-bottom emit)
-     ]
+     (compile-lambda type params body env stack-bottom emit)]
 
     [(node/let type bindings body)
      (compile-let type bindings body env stack-bottom emit)]
@@ -115,6 +126,7 @@
         .p2align 4,,15
 	.globl _scheme_entry
 _scheme_entry:
+        movq %rdi, %r15
 "))
 
 [module+ test

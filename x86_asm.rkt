@@ -61,12 +61,25 @@
 (define (jmp loc)
   (format "jmp _~a" loc))
 
+(define (orq reg1 reg2)
+  (format "orq ~a, ~a" reg1 reg2))
+
+;; convert val to its immediate representation
 (define (immediate val)
   (match val
     [(? integer?)
      (format "$~a" (arithmetic-shift val fixnum-shift))]
     [(? boolean?)
      (format "$~a" (if val true-rep false-rep))]))
+
+;; Like `immeidate`, but doesn't do any converting
+(define (raw-immediate val)
+  (format "$~a" val))
+
+;; Tag the current heap pointer with its type
+(define (tag-heap kind)
+  (match kind
+    ['pair (orq (raw-immediate 1) (reg 'heap))]))
 
 (define (label sym)
   (format "_~a:" sym))
@@ -87,11 +100,16 @@
 (define (stack [offset (- wordsize)])
   (mem #:offset offset #:reg-b (reg 'stack)))
 
+(define (heap [offset (- wordsize)])
+  (mem #:offset offset #:reg-b (reg 'heap)))
+
+
 (define (reg reg-name)
   (match reg-name
     ['ret-val        "%rax"]
     ['ret-val-small  "%al"]
     ['stack          "%rsp"]
+    ['heap           "%r15"]
     ['param-1        "%rdi"]
     ['param-2        "%rsi"]
     ['param-3        "%rdx"]

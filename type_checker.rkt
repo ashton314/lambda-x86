@@ -12,6 +12,7 @@
 
 (define (lambda? sym) (and (member sym '(lambda λ)) (symbol? sym)))
 (define (bin-int-prim? sym) (and (member sym '(+ - * / =)) (symbol? sym)))
+(define (bin-prim? sym) (and (member sym '(cons car cdr)) (symbol? sym)))
 
 ;; Convert into CPS and parse
 (define (convert-parse expr)
@@ -63,6 +64,11 @@
      (let* ([x1-node (parse x1)]
             [x2-node (parse x2)])
        (node/prim 'integer op 2 (list x1-node x2-node)))]
+
+    [`(,(? bin-prim? op) ,x1 ,x2)
+     (let* ([x1-node (parse x1)]
+            [x2-node (parse x2)])
+       (node/prim 'unknown op 2 (list x1-node x2-node)))]
 
     ;; Symbols (i.e. variables)
     [(? symbol? x)
