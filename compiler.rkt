@@ -31,7 +31,7 @@
      (emit (movq (stack stack-bottom) (reg 'ret-val)))               ; copy the cdr to next area
      (emit (movq (reg 'ret-val) (heap wordsize)))
      (emit (movq (reg 'heap) (reg 'ret-val)))
-     (emit (orq (raw-immediate 1) (reg 'ret-val)))
+     (emit (orq (raw-immediate 1) (reg 'ret-val)))                   ; tag our return value as pointing to a pair
      (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))]
 
     [(node/prim type name 2 args)
