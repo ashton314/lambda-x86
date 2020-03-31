@@ -53,6 +53,9 @@
        (compile-expr f-case env stack-bottom emit)
        (emit (label l1)))]
 
+    [(node/labels lvars body)
+     (compile-labels lvars body)]
+
     [(node/lambda type params body)
      (compile-lambda type params body env stack-bottom emit)]
 
@@ -77,6 +80,9 @@
                                  stack-bottom)
                      (- stack-bottom wordsize)
                      emit))))
+
+(define (compile-labels defs body)
+  (error "Still haven't built the label compiler yet."))
 
 (define (compile-lambda type params body env stack-bottom [emit emit-string])
   (error "Darn. This is a hard problem."))
