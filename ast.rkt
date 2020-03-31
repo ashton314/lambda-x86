@@ -36,6 +36,23 @@
        ;; Foo... how do I do this part? I don't know how to build up symbols and intern them
        )]))
 
+;; Labels declaration
+(struct node/labels
+  (type lvars body)
+  #:mutable #:transparent
+  #:methods gen:node
+  [(define (typeof node) (node/labels-type node))
+   (define (set-type! node new-type) (set-node/labels-type! node new-type))])
+
+;; Label-variable (a symbol -> (code (var ...) expr) mapping)
+(struct node/lvar
+  (type name vars body)
+  #:mutable #:transparent
+  #:methods gen:node
+  [(define (typeof node) (node/labels-type node))
+   (define (set-type! node new-type) (set-node/labels-type! node new-type))])
+
+
 ;; Function application
 (struct node/app
   (type func args)

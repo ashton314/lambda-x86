@@ -134,4 +134,5 @@ _scheme_entry:
         .p2align 4,,15
 	.globl _scheme_entry
 _scheme_entry:
+        movq %rdi, %r15
 ")]

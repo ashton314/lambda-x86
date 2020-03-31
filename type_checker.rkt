@@ -28,6 +28,12 @@
     [`(,(? lambda? _) ,xs ,body)
      (node/lambda 'unknown xs (parse body))]
 
+    ;; Labels
+    [`(labels ([,(? symbol? lvar) (code (,(? symbol? params) ...) ,f-body)] ...) ,body)
+     (node/labels 'unknown
+                  (map (λ (lv lp lb) (node/lvar 'void lv lp (parse lb))) lvar params f-body)
+                  (parse body))]
+
     ;; Type annotation
     ;; TODO: check to make sure this annotation is actually valid
     [`(ann ,e ,t)
@@ -86,6 +92,15 @@
                           (list (node/let-binding 'unknown 'x (node/immediate 'integer 1))
                                 (node/let-binding 'unknown 'y (node/immediate 'integer 2)))
                           (node/prim 'integer '+ 2 (list (node/var 'unknown 'x) (node/var 'unknown 'y)))))]
+
+[module+ test
+  (check-equal? (parse '(labels ([y (code (a b) (* a b))]) (app y 1 2)))
+                (node/labels 'unknown
+                             (list (node/lvar 'void 'y '(a b)
+                                              (node/prim 'integer '* 2 (list (node/var 'unknown 'a)
+                                                                             (node/var 'unknown 'b)))))
+                             (node/app 'unknown (node/var 'unknown 'y)
+                                       (list (node/immediate 'integer 1) (node/immediate 'integer 2)))))]
 
 ;; Set the type of a node to `type`. If there's already a type
 ;; associated with this node and it doesn't match, throw a type error.
