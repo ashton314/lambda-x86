@@ -46,7 +46,7 @@
 
 ;; Label-variable (a symbol -> (code (var ...) expr) mapping)
 (struct node/lvar
-  (type name vars body)
+  (type name params body)
   #:mutable #:transparent
   #:methods gen:node
   [(define (typeof node) (node/labels-type node))

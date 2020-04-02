@@ -53,8 +53,11 @@
        (compile-expr f-case env stack-bottom emit)
        (emit (label l1)))]
 
-    [(node/labels lvars body)
-     (compile-labels lvars body)]
+    [(node/app type func args)
+     (emit "code for func here")]
+
+    [(node/labels _ lvars body)
+     (compile-labels lvars body env stack-bottom emit)]
 
     [(node/lambda type params body)
      (compile-lambda type params body env stack-bottom emit)]
@@ -81,8 +84,22 @@
                      (- stack-bottom wordsize)
                      emit))))
 
-(define (compile-labels defs body)
-  (error "Still haven't built the label compiler yet."))
+(define (compile-labels defs def-body env stack-bottom [emit emit-string])
+  (if (null? defs)
+      (compile-expr def-body env stack-bottom emit)
+      (match defs
+        [(list (node/lvar _ name params body) rest-defs ...)
+         (let ([new-label (function-label name)]
+               [new-stack (- stack-bottom (* wordsize (length params)))]
+               [new-env (for/fold ([new-env env])
+                                  ([i (in-naturals 1)]
+                                   [p params])
+                          (env/extend new-env p (- (* wordsize i))))])
+           (pretty-print `(new environment for ,name ,new-env (stack ,new-stack)))
+           (emit (label new-label))
+           ;; Warning: maybe an off-by-one error
+           (compile-expr body new-env new-stack emit)
+           (compile-labels rest-defs def-body new-env new-stack emit))])))
 
 (define (compile-lambda type params body env stack-bottom [emit emit-string])
   (error "Darn. This is a hard problem."))
