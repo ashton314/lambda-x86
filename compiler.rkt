@@ -73,10 +73,16 @@
 
 (define (compile-let type bindings body env stack-bottom [emit emit-string])
   (if (null? bindings)
+      ;; If no more bindings to compile, compile the let body
       (compile-expr body env stack-bottom emit)
       (let ([b (car bindings)])
+        ;; Ok, we've got a binding. Let's compile it's value
         (compile-expr (node/let-binding-value b) env stack-bottom emit)
+        ;; Now we're going to move that result into the bottom of the stack
         (emit (movq (reg 'ret-val) (stack stack-bottom)))
+        ;; Recur: compile the rest of the bindings: increment the
+        ;; stack, and extend the env to point to the stack position we
+        ;; just moved the value of this binding's variable to
         (compile-let type (cdr bindings) body
                      (env/extend env
                                  (node/let-binding-variable b)
@@ -86,20 +92,21 @@
 
 (define (compile-labels defs def-body env stack-bottom [emit emit-string])
   (if (null? defs)
+      ;; No more defs? Compile the body where the function calls will be
       (compile-expr def-body env stack-bottom emit)
       (match defs
-        [(list (node/lvar _ name params body) rest-defs ...)
-         (let ([new-label (function-label name)]
-               [new-stack (- stack-bottom (* wordsize (length params)))]
-               [new-env (for/fold ([new-env env])
+        [(list (node/lvar _ name params body) rest-defs ...)                       ; Pull out the first binding
+         (let ([new-label (function-label name)]                                   ; Create a new label for this function
+               [new-stack (- stack-bottom (* wordsize (length params)))]           ; Move the stack past where all the params will sit
+               [new-env (for/fold ([new-env env])                                  ; Extend the env: map the param to a location on the stack
                                   ([i (in-naturals 1)]
                                    [p params])
                           (env/extend new-env p (- (* wordsize i))))])
            (pretty-print `(new environment for ,name ,new-env (stack ,new-stack)))
-           (emit (label new-label))
+           (emit (label new-label))                                                ; Emit the function label
            ;; Warning: maybe an off-by-one error
-           (compile-expr body new-env new-stack emit)
-           (compile-labels rest-defs def-body new-env new-stack emit))])))
+           (compile-expr body new-env new-stack emit)                              ; Compile the body of function in this lable
+           (compile-labels rest-defs def-body new-env new-stack emit))])))         ; Recur: Compile the rest of the bindings
 
 (define (compile-lambda type params body env stack-bottom [emit emit-string])
   (error "Darn. This is a hard problem."))
