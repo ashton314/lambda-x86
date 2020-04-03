@@ -112,7 +112,6 @@
 (define (heap [offset (- wordsize)])
   (mem #:offset offset #:reg-b (reg 'heap)))
 
-
 (define (reg reg-name)
   (match reg-name
     ['ret-val        "%rax"]
@@ -122,7 +121,11 @@
     ['param-1        "%rdi"]
     ['param-2        "%rsi"]
     ['param-3        "%rdx"]
-    ['param-4        "%rcx"]))
+    ['param-4        "%rcx"]
+    ['param-5        "%r9"]
+    ['param-6        "%r10"]
+    ['param-7        "%r11"]
+    ['param-8        "%r12"]))
 
 [module+ test
   (check-equal? (mem #:offset 42) "42")

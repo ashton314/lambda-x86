@@ -55,9 +55,9 @@
 
     [(node/app type (node/var _ func-name) args)
      (for ([arg args]                                                ; I love me some list comprehensions
-           [idx (in-naturals)])
+           [idx '(param-1 param-2 param-3 param-4 param-5 param-6 param-7 param-8)])
        (compile-expr arg env (- stack-bottom (* wordsize (+ (length args) 1))))
-       (emit (movq (reg 'ret-val) (stack (- stack-bottom (* wordsize (+ idx 1)))))))
+       (emit (movq (reg 'ret-val) (reg idx))))
      (emit (call (env/var-info env func-name)))]
 
     [(node/labels _ lvars body)
@@ -70,7 +70,9 @@
      (compile-let type bindings body env stack-bottom emit)]
 
     [(node/var type name)
-     (emit (movq (stack (or (env/var-info env name) (error 'undefined-variable)))
+     (emit (movq (if (symbol? (env/var-info env name))               ; If I've got a symbol, it's a register name;
+                     (reg (env/var-info env name))                   ; numbers mean an offset from the current stack
+                     (stack (or (env/var-info env name) (error 'undefined-variable))))
                  (reg 'ret-val)))]
 
     ))
@@ -106,16 +108,15 @@
           (match defs
             [(list (node/lvar _ name params body) rest-defs ...)                       ; Pull out the first binding
              (let ([new-label (function-label name)]                                   ; Create a new label for this function
-                   [new-stack (- stack-bottom (* wordsize (length params)))]           ; Move the stack past where all the params will sit
                    [new-env (for/fold ([new-env env])                                  ; Extend the env: map the param to a location on the stack
-                                      ([i (in-naturals 1)]
+                                      ([i '(param-1 param-2 param-3 param-4 param-5 param-6 param-7 param-8)]
                                        [p params])
-                              (env/extend new-env p (- (* wordsize i))))])
+                              (env/extend new-env p i))])
                (emit (label new-label))                                                ; Emit the function label
                ;; Warning: maybe an off-by-one error
-               (compile-expr body new-env new-stack emit)                              ; Compile the body of function in this lable
+               (compile-expr body new-env stack-bottom emit)                              ; Compile the body of function in this lable
                (emit (ret))
-               (compile-labels-loop rest-defs def-body (env/extend new-env name new-label) new-stack))])))
+               (compile-labels-loop rest-defs def-body (env/extend new-env name new-label) stack-bottom))])))
 
     (compile-labels-loop defs def-body env stack-bottom)))
 
