@@ -53,8 +53,12 @@
        (compile-expr f-case env stack-bottom emit)
        (emit (label l1)))]
 
-    [(node/app type func args)
-     (emit "code for func here")]
+    [(node/app type (node/var _ func-name) args)
+     (for ([arg args]                                                ; I love me some list comprehensions
+           [idx (in-naturals)])
+       (compile-expr arg env (- stack-bottom (* wordsize (+ (length args) 1))))
+       (emit (movq (reg 'ret-val) (stack (- stack-bottom (* wordsize (+ idx 1)))))))
+     (emit (call (env/var-info env func-name)))]
 
     [(node/labels _ lvars body)
      (compile-labels lvars body env stack-bottom emit)]
@@ -91,22 +95,29 @@
                      emit))))
 
 (define (compile-labels defs def-body env stack-bottom [emit emit-string])
-  (if (null? defs)
-      ;; No more defs? Compile the body where the function calls will be
-      (compile-expr def-body env stack-bottom emit)
-      (match defs
-        [(list (node/lvar _ name params body) rest-defs ...)                       ; Pull out the first binding
-         (let ([new-label (function-label name)]                                   ; Create a new label for this function
-               [new-stack (- stack-bottom (* wordsize (length params)))]           ; Move the stack past where all the params will sit
-               [new-env (for/fold ([new-env env])                                  ; Extend the env: map the param to a location on the stack
-                                  ([i (in-naturals 1)]
-                                   [p params])
-                          (env/extend new-env p (- (* wordsize i))))])
-           (pretty-print `(new environment for ,name ,new-env (stack ,new-stack)))
-           (emit (label new-label))                                                ; Emit the function label
-           ;; Warning: maybe an off-by-one error
-           (compile-expr body new-env new-stack emit)                              ; Compile the body of function in this lable
-           (compile-labels rest-defs def-body new-env new-stack emit))])))         ; Recur: Compile the rest of the bindings
+  (let ([end-label (fresh-label)])
+    (emit (jmp end-label))
+    (define (compile-labels-loop defs def-body env stack-bottom)
+      (if (null? defs)
+          ;; No more defs? Compile the body where the function calls will be
+          (begin
+            (emit (label end-label))
+            (compile-expr def-body env stack-bottom emit))
+          (match defs
+            [(list (node/lvar _ name params body) rest-defs ...)                       ; Pull out the first binding
+             (let ([new-label (function-label name)]                                   ; Create a new label for this function
+                   [new-stack (- stack-bottom (* wordsize (length params)))]           ; Move the stack past where all the params will sit
+                   [new-env (for/fold ([new-env env])                                  ; Extend the env: map the param to a location on the stack
+                                      ([i (in-naturals 1)]
+                                       [p params])
+                              (env/extend new-env p (- (* wordsize i))))])
+               (emit (label new-label))                                                ; Emit the function label
+               ;; Warning: maybe an off-by-one error
+               (compile-expr body new-env new-stack emit)                              ; Compile the body of function in this lable
+               (emit (ret))
+               (compile-labels-loop rest-defs def-body (env/extend new-env name new-label) new-stack))])))
+
+    (compile-labels-loop defs def-body env stack-bottom)))
 
 (define (compile-lambda type params body env stack-bottom [emit emit-string])
   (error "Darn. This is a hard problem."))

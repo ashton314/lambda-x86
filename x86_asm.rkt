@@ -85,9 +85,15 @@
   (format "_~a:" sym))
 
 (define (function-label name)
-  (gensym (string-append "_func_" (symbol->string name))))
+  (gensym (string-append "func_" (symbol->string name))))
 
 (define (ret) "ret")
+
+(define (call label)
+  (format "call _~a" label))
+
+(define (fresh-label)
+  (gensym (string-append "l_")))
 
 (define (mem #:offset [imm #f] #:reg-b [rb #f] #:reg-i [ri #f] #:s [s #f])
   (string-append
