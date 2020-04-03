@@ -76,7 +76,11 @@ _main:                                  ## @main
 
 #+END_SRC
 * Notebook
-** Recursion bug
+** DONE Recursion bug
+   CLOSED: [2020-04-03 Fri 00:05]
+   :LOGBOOK:
+   - State "DONE"       from              [2020-04-03 Fri 00:05]
+   :END:
 
 These break:
 
@@ -97,3 +101,22 @@ But these don't:
 #+END_SRC
 
 Oh, oops. That's because the breaking ones are actually recursing infinitely.
+** Multi-value recursion bug
+
+This works:
+
+#+BEGIN_SRC racket
+
+  (compile (parse '(labels ((factorial (code (n) (if (= n 0) 1 (* n (app factorial (- n 1))))))) (app factorial 5))))
+
+#+END_SRC
+
+But this doesn't:
+
+#+BEGIN_SRC racket
+
+  (compile (parse '(labels ((factorial (code (n acc) (if (= n 0) acc (app factorial (- n 1) (* acc n)))))) (app factorial 5 1))))
+
+#+END_SRC
+
+I think it's because I'm not using my stack right: instead of writing values to absolute places on the stack, I should try to use push and pop. Else, check my useage of the stack. See page 276 in the textbook for a detailed description.
