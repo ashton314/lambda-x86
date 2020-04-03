@@ -92,6 +92,13 @@
 (define (call label)
   (format "call _~a" label))
 
+(define (push place)
+  (format "push ~a" place))
+
+(define (pop place)
+  (format "pop ~a" place))
+
+
 (define (fresh-label)
   (gensym (string-append "l_")))
 

@@ -55,9 +55,8 @@
 
     [(node/app type (node/var _ func-name) args)
      ;; Store params
-     (for ([param '(param-1 param-2 param-3 param-4)]
-           [idx (in-naturals)])
-       (emit (movq (reg param) (stack (- stack-bottom (* wordsize idx))))))
+     (for ([param '(param-1 param-2 param-3 param-4)])
+       (emit (push (reg param))))
 
      ;; Move arguments into position
      (for ([arg args]                                                ; I love me some list comprehensions
@@ -69,9 +68,8 @@
      (emit (call (env/var-info env func-name)))
 
      ;; Restore parameters
-     (for ([param '(param-1 param-2 param-3 param-4)]
-           [idx (in-naturals)])
-       (emit (movq (stack (- stack-bottom (* wordsize idx))) (reg param))))]
+     (for ([param '(param-4 param-3 param-2 param-1)])
+       (emit (pop (reg param))))]
 
     [(node/labels _ lvars body)
      (compile-labels lvars body env stack-bottom emit)]

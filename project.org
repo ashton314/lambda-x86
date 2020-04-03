@@ -4,6 +4,8 @@ I've decided to build a quick-and-dirty compiler following _An Incremental Appro
 
 I've also decided to ditch continuation-passing style for this first draft. I'll get my head around regular recursive implementations first.
 
+I wanted to use stack-based parameter passing, but I gave up and am just using four registers instead. (I've forgotten a bit about how the stack works and I just wanted to move on.)
+
 * Tasks
 ** DONE Fix up parser to handle booleans
    CLOSED: [2020-03-26 Thu 22:06]
@@ -88,4 +90,10 @@ But these don't:
 
 #+BEGIN_SRC racket
 (compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (let ((c (+ b 1))) (+ c 1)))))) (app f1 1))))
+
+(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (app f0 7))))) (app f1 1))))
+
+(compile (parse '(labels ((f0 (code (a) (+ a 1)))) (let ((a 1)) (app f0 (+ a 1))))))
 #+END_SRC
+
+Oh, oops. That's because the breaking ones are actually recursing infinitely.
