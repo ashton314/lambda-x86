@@ -73,3 +73,19 @@ _main:                                  ## @main
 .subsections_via_symbols
 
 #+END_SRC
+* Notebook
+** Recursion bug
+
+These break:
+
+#+BEGIN_SRC racket
+(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (app f1 (+ b 1)))))) (app f1 1))))
+
+(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (let ((c (+ b 1))) (app f1 c)))))) (app f1 1))))
+#+END_SRC
+
+But these don't:
+
+#+BEGIN_SRC racket
+(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (let ((c (+ b 1))) (+ c 1)))))) (app f1 1))))
+#+END_SRC
