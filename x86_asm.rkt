@@ -132,7 +132,8 @@
     ['param-5        "%r9"]
     ['param-6        "%r10"]
     ['param-7        "%r11"]
-    ['param-8        "%r12"]))
+    ['param-8        "%r12"]
+    ['swap-1         "%r13"]))
 
 [module+ test
   (check-equal? (mem #:offset 42) "42")

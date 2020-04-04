@@ -37,9 +37,10 @@
     [(node/prim type name 2 args)
      ;; These are in a funky order because `-` is not communative
      (compile-expr (cadr args) env stack-bottom emit)
-     (emit (movq (reg 'ret-val) (stack stack-bottom)))
-     (compile-expr (car args) env (- stack-bottom wordsize) emit)
-     (emit ((prim-bin-op name) (stack stack-bottom) (reg 'ret-val)))]
+     (emit (push (reg 'ret-val)))
+     (compile-expr (car args) env stack-bottom emit)
+     (emit (pop (reg 'swap-1)))
+     (emit ((prim-bin-op name) (reg 'swap-1) (reg 'ret-val)))]
 
     [(node/if type condition t-case f-case)
      (let ([l0 (gensym 'cond)]
@@ -61,7 +62,7 @@
      ;; Move arguments into position
      (for ([arg args]                                                ; I love me some list comprehensions
            [idx '(param-1 param-2 param-3 param-4)])
-       (compile-expr arg env (- stack-bottom (* wordsize (+ (length args) 1))))
+       (compile-expr arg env stack-bottom)
        (emit (movq (reg 'ret-val) (reg idx))))
 
      ;; Call
