@@ -17,6 +17,19 @@ I wanted to use stack-based parameter passing, but I gave up and am just using f
    :LOGBOOK:
    - State "DONE"       from "TODO"       [2020-03-27 Fri 20:30]
    :END:
+** TODO Fix (cons (funcall) (any)) bug                                  :bug:
+Trying to run something like this:
+
+#+BEGIN_SRC racket
+
+  (compile (parse '(labels ((f (code (n) (if (= n 0) 1 (* n (app f (- n 1)))))))
+                           (cons (app f 5) 6))))
+
+#+END_SRC
+
+Computes the factorial value correctly, but gives something that looks like a pointer for the ~cdr~.
+
+* Tasks for later
 ** TODO Should I have a ~node/app~ for regular function calls, and a ~node/lapp~ for direct lambda calls?
 I think so. It's kind of like differentiating between ~kapp~ and regular ~app~.
 ** TODO Write a tortue test for the compiler thus far

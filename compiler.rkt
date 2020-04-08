@@ -76,8 +76,21 @@
            [idx (in-naturals)])
        (emit (movq (stack (- stack-bottom (* wordsize idx))) (reg p-idx))))
 
+     ;; Normalize stack before call: we might have manually allocated
+     ;; some values on the stack, and we want to preserve them
+
+     ;; TODO: in the future, the `push-stack` routine should probably
+     ;; push the stack and then return the absolute address to the
+     ;; value---I think I can use the load-effective-addr instruction
+     ;; for this
+
+     (emit (addq (immediate (- stack-bottom wordsize)) (reg 'stack)))
+
      ;; Call
      (emit (call (env/var-info env func-name)))
+
+     ;; Restore old stack
+     (emit (subq (immediate (- stack-bottom wordsize)) (reg 'stack)))
 
      ;; Restore parameters
      (for ([param '(param-4 param-3 param-2 param-1)])
