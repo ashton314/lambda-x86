@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define fixnum_mask  3
 #define fixnum_tag   0
@@ -25,6 +26,10 @@
 
 size_t scheme_entry(size_t *heap);
 void format_val(size_t val);
+
+void beep() {
+  printf("beep\n");
+}
 
 int main(int argc, char** argv) {
   size_t *heap = malloc(heap_size);

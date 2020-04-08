@@ -34,10 +34,10 @@
 (define (mulq reg-a reg-b)
   ;; This emits two instructions: first the multiply instruction, then
   ;; a shift instruction to correct
-  (format "imulq ~a, ~a\nshr $~a, ~a" reg-a reg-b fixnum-shift reg-b))
+  (format "imulq ~a, ~a\n\tshr $~a, ~a" reg-a reg-b fixnum-shift reg-b))
 
 (define (num-equals reg-a reg-b)
-  (format "cmpq ~a, ~a\nsete ~a\nmovzbq ~a, ~a\nshl $~a, ~a\nxorq $~a, ~a"
+  (format "cmpq ~a, ~a\n\tsete ~a\n\tmovzbq ~a, ~a\n\tshl $~a, ~a\n\txorq $~a, ~a"
           reg-a reg-b                         ; cmpq args
           (reg 'ret-val-small)                ; sete
           (reg 'ret-val-small) (reg 'ret-val) ; movzbq

@@ -1,5 +1,5 @@
-#lang racket/base
-(require racket/match racket/pretty)
+#lang racket
+;(require racket/match racket/pretty)
 (require "ast.rkt")
 (require "type_checker.rkt")
 (require "x86_asm.rkt")
@@ -24,6 +24,7 @@
      (emit (movq (immediate num) (reg 'ret-val)))]
 
     [(node/prim type 'cons 2 args)
+     (emit (label (gensym 'start_cons)))
      (compile-expr (cadr args) env stack-bottom emit)                ; compile the cdr
      (emit (movq (reg 'ret-val) (stack stack-bottom)))               ; save on stack
      (compile-expr (car args) env (- stack-bottom wordsize) emit)    ; compile the car
@@ -32,7 +33,8 @@
      (emit (movq (reg 'ret-val) (heap wordsize)))
      (emit (movq (reg 'heap) (reg 'ret-val)))
      (emit (orq (raw-immediate 1) (reg 'ret-val)))                   ; tag our return value as pointing to a pair
-     (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))]
+     (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))
+     (emit (label (gensym 'end_cons)))]
 
     [(node/prim type name 2 args)
      ;; These are in a funky order because `-` is not communative
@@ -43,8 +45,8 @@
      (emit ((prim-bin-op name) (reg 'swap-1) (reg 'ret-val)))]
 
     [(node/if type condition t-case f-case)
-     (let ([l0 (gensym 'cond)]
-           [l1 (gensym 'cond_branch)])
+     (let ([l0 (gensym 'false_branch)]
+           [l1 (gensym 'cond_end)])
        (compile-expr condition env stack-bottom emit)
        (emit (cmpq (immediate #f) (reg 'ret-val)))
        (emit (je l0))                   ; jump to the false branch
@@ -54,16 +56,26 @@
        (compile-expr f-case env stack-bottom emit)
        (emit (label l1)))]
 
-    [(node/app type (node/var _ func-name) args)
+    [(node/app type (node/var _ func-name) args)                     ; TODO: look up the function arity
+     (emit (label (gensym 'start_app)))
+
      ;; Store params
      (for ([param '(param-1 param-2 param-3 param-4)])
        (emit (push (reg param))))
 
-     ;; Move arguments into position
+     ;; Move arguments into slots on the stack
      (for ([arg args]                                                ; I love me some list comprehensions
-           [idx '(param-1 param-2 param-3 param-4)])
-       (compile-expr arg env stack-bottom)
-       (emit (movq (reg 'ret-val) (reg idx))))
+           [idx (in-naturals)]
+           [p-idx '(param-1 param-2 param-3 param-4)])
+       (emit (label (gensym (format "arg_~a" idx))))
+       (compile-expr arg env (- stack-bottom (* wordsize 5)))        ; FIXME: make this be based off the number of arguments
+       (emit (movq (reg 'ret-val) (stack (- stack-bottom (* wordsize idx)))))
+       (emit (label (gensym (format "arg_~a_done" idx)))))
+
+     ;; All arguments computed; move them off the stack and into registers
+     (for ([p-idx '(param-1 param-2 param-3 param-4)]
+           [idx (in-naturals)])
+       (emit (movq (stack (- stack-bottom (* wordsize idx))) (reg p-idx))))
 
      ;; Call
      (emit (call (env/var-info env func-name)))
@@ -170,7 +182,7 @@
 
 (define (write-to-asm thing)
   (println (list 'emit: thing))
-  (with-output-to-file asm-file (λ () (displayln thing)) #:exists 'append))
+  (with-output-to-file asm-file (λ () (if (not (string-suffix? thing ":")) (display "\t") (void)) (displayln thing)) #:exists 'append))
 
 (define (emit-string thing [writer write-to-asm])
   (writer thing))
