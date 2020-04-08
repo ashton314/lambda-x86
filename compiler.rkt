@@ -26,23 +26,22 @@
     [(node/prim type 'cons 2 args)
      (emit (label (gensym 'start_cons)))
      (compile-expr (cadr args) env stack-bottom emit)                ; compile the cdr
-     (emit (movq (reg 'ret-val) (stack stack-bottom)))               ; save on stack
-     (compile-expr (car args) env (- stack-bottom wordsize) emit)    ; compile the car
-     (emit (movq (reg 'ret-val) (heap 0)))                           ; copy car to free pointer
-     (emit (movq (stack stack-bottom) (reg 'ret-val)))               ; copy the cdr to next area
-     (emit (movq (reg 'ret-val) (heap wordsize)))
-     (emit (movq (reg 'heap) (reg 'ret-val)))
-     (emit (orq (raw-immediate 1) (reg 'ret-val)))                   ; tag our return value as pointing to a pair
-     (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))
-     (emit (label (gensym 'end_cons)))]
+     (let-values ([(the-car new-stack) (push-stack (reg 'ret-val) stack-bottom emit)])
+       (compile-expr (car args) env (- new-stack wordsize) emit)     ; compile the car
+       (emit (movq (reg 'ret-val) (heap 0)))                         ; copy car to free pointer
+       (emit (movq the-car (reg 'ret-val)))                          ; copy the cdr to next area
+       (emit (movq (reg 'ret-val) (heap wordsize)))
+       (emit (movq (reg 'heap) (reg 'ret-val)))
+       (emit (orq (raw-immediate 1) (reg 'ret-val)))                 ; tag our return value as pointing to a pair
+       (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))
+       (emit (label (gensym 'end_cons))))]
 
     [(node/prim type name 2 args)
      ;; These are in a funky order because `-` is not communative
      (compile-expr (cadr args) env stack-bottom emit)
-     (emit (push (reg 'ret-val)))
-     (compile-expr (car args) env stack-bottom emit)
-     (emit (pop (reg 'swap-1)))
-     (emit ((prim-bin-op name) (reg 'swap-1) (reg 'ret-val)))]
+     (let-values ([(arg1 new-stack) (push-stack (reg 'ret-val) stack-bottom emit)])
+       (compile-expr (car args) env new-stack emit)
+       (emit ((prim-bin-op name) arg1 (reg 'ret-val))))]
 
     [(node/if type condition t-case f-case)
      (let ([l0 (gensym 'false_branch)]
@@ -146,6 +145,18 @@
 
 (define (compile-lambda type params body env stack-bottom [emit emit-string])
   (error "Darn. This is a hard problem."))
+
+(define (push-stack var-loc stack-bottom [emit emit-string])
+  ;; Emit code needed to push a variable onto the stack, and return
+  ;; the new stack bottom and the location the variable was at
+
+  ;; We assume stack-bottom is writeable; that means the caller will
+  ;; have to ensure we never call 0(%esp), because that would
+  ;; overwrite the return value. We place this burden on the caller so
+  ;; that we can call this function sequentially without wasting space
+  ;; on the stack.
+  (emit (movq var-loc (stack stack-bottom)))
+  (values (stack stack-bottom) (- stack-bottom wordsize)))
 
 (define (env/new) '())
 
