@@ -239,6 +239,11 @@ _scheme_entry:
 ;; Torture-test
 
 [module+ torture-test
+  ;; This should be (120 . 5)
+  (compile (parse '(labels ((f2 (code (n) (if (= n 1) n (* n (app f2 (- n 1))))))) (cons (let ((x 4)) (app f2 (+ x 1))) 5))))
+  (compile (parse '(labels ((f2 (code (n) (if (= n 1) n (* n (app f2 (- n 1))))))) (cons (let ((x 5)) (app f2 x)) 5))))
+
+  ;; This should be ((120 . ((120 . 120) . 120)) . (120 . (120 . (120 . 120))))
   (compile (parse '(labels ((f1 (code (n) (if (= n 0) 1 (* n (app f1 (- n 1))))))
                    (f2 (code (n) (if (= n 1) n (* n (app f2 (- n 1))))))
                    (f3 (code (n acc) (if (= n 0) acc (app f3 (- n 1) (* acc n)))))

@@ -7,6 +7,11 @@ I've also decided to ditch continuation-passing style for this first draft. I'll
 I wanted to use stack-based parameter passing, but I gave up and am just using four registers instead. (I've forgotten a bit about how the stack works and I just wanted to move on.)
 
 * Tasks
+** TODO Rewrite compiler to not use ~push~ and ~pop~ commands
+Turns out there's a new bug with ~let~ that will make using ~push~ and
+~pop~ difficult: I'm manually rewriting the stack pointer to get
+function calls to work, but that messes up my variable references
+
 ** DONE Fix up parser to handle booleans
    CLOSED: [2020-03-26 Thu 22:06]
    :LOGBOOK:
@@ -17,7 +22,11 @@ I wanted to use stack-based parameter passing, but I gave up and am just using f
    :LOGBOOK:
    - State "DONE"       from "TODO"       [2020-03-27 Fri 20:30]
    :END:
-** TODO Fix (cons (funcall) (any)) bug                                  :bug:
+** DONE Fix (cons (funcall) (any)) bug                                  :bug:
+   CLOSED: [2020-04-23 Thu 21:38]
+   :LOGBOOK:
+   - State "DONE"       from "TODO"       [2020-04-23 Thu 21:38]
+   :END:
 Trying to run something like this:
 
 #+BEGIN_SRC racket
