@@ -7,6 +7,10 @@ I've also decided to ditch continuation-passing style for this first draft. I'll
 I wanted to use stack-based parameter passing, but I gave up and am just using four registers instead. (I've forgotten a bit about how the stack works and I just wanted to move on.)
 
 * Tasks
+** TODO How could I use ~push~ and ~pop~?                       :enhancement:
+I'd like to be able to use x86's capacities to improve generated code
+performance. I might have to push this off and just have a static
+stack pointer
 ** TODO Rewrite compiler to not use ~push~ and ~pop~ commands
 Turns out there's a new bug with ~let~ that will make using ~push~ and
 ~pop~ difficult: I'm manually rewriting the stack pointer to get
