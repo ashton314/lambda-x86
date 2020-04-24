@@ -58,6 +58,11 @@
     [(node/app type (node/var _ func-name) args)                     ; TODO: look up the function arity
      (emit (label (gensym 'start_app)))
 
+     ;; set stack back to zero so we can push
+     ;; we do this in case we've done some "fake" pushing
+     (emit (addq (immediate stack-bottom) (reg 'stack)))
+     ;; We can now pretend the stack is at 0; we own the stack!
+
      ;; Store params
      (for ([param '(param-1 param-2 param-3 param-4)])
        (emit (push (reg param))))
@@ -94,7 +99,11 @@
 
      ;; Restore parameters
      (for ([param '(param-4 param-3 param-2 param-1)])
-       (emit (pop (reg param))))]
+       (emit (pop (reg param))))
+
+     ;; Restore stack pointer to it's old value (prior to saving the arguments)
+     (emit (subq (immediate stack-bottom) (reg 'stack)))
+     ]
 
     [(node/labels _ lvars body)
      (compile-labels lvars body env stack-bottom emit)]
@@ -226,3 +235,21 @@ _scheme_entry:
 _scheme_entry:
         movq %rdi, %r15
 ")]
+
+;; Torture-test
+
+[module+ torture-test
+  (parse '(labels ((f1 (code (n) (if (= n 0) 1 (* n (app f1 (- n 1))))))
+                   (f2 (code (n) (if (= n 1) n (* n (app f2 (- n 1))))))
+                   (f3 (code (n acc) (if (= n 0) acc (app f3 (- n 1) (* acc n)))))
+                   (f4 (code (acc n) (if (= 0 n) acc (app f4 (* acc n) (- n 1)))))
+                   (f5 (code (n) (app f3 n 1))))
+
+                  (let ((r-f1 (app f1 5))
+                        (r-f2 (app f2 5))
+                        (r-f3 (app f3 5 1))
+                        (r-f4 (app f4 1 5))
+                        (r-f5 (app f5 5)))
+                    (cons (cons 120 (cons (cons r-f1 r-f2) r-f3)) (cons (* 12 (+ 2 8)) (cons r-f4 r-f5))))))
+  
+  ]
