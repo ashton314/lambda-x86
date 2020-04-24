@@ -239,7 +239,7 @@ _scheme_entry:
 ;; Torture-test
 
 [module+ torture-test
-  (parse '(labels ((f1 (code (n) (if (= n 0) 1 (* n (app f1 (- n 1))))))
+  (compile (parse '(labels ((f1 (code (n) (if (= n 0) 1 (* n (app f1 (- n 1))))))
                    (f2 (code (n) (if (= n 1) n (* n (app f2 (- n 1))))))
                    (f3 (code (n acc) (if (= n 0) acc (app f3 (- n 1) (* acc n)))))
                    (f4 (code (acc n) (if (= 0 n) acc (app f4 (* acc n) (- n 1)))))
@@ -250,6 +250,8 @@ _scheme_entry:
                         (r-f3 (app f3 5 1))
                         (r-f4 (app f4 1 5))
                         (r-f5 (app f5 5)))
-                    (cons (cons 120 (cons (cons r-f1 r-f2) r-f3)) (cons (* 12 (+ 2 8)) (cons r-f4 r-f5))))))
+                    (cons (cons (app f5 (- (app f5 3) 1)) (cons (cons r-f1 r-f2) r-f3)) (cons (* 12 (+ 2 8)) (cons r-f4 (cons
+                                                                                                                         (let ((x 4)) (app f2 (+ x 1)))
+                                                                                                                         r-f5))))))))
   
   ]
