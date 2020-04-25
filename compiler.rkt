@@ -145,9 +145,9 @@
             [(list (node/lvar _ name params body) rest-defs ...)                       ; Pull out the first binding
              (let* ([new-label (function-label name)]                                  ; Create a new label for this function
                     [new-env (for/fold ([new-env (env/extend env name new-label)])     ; Extend the env: map the param to a location on the stack
-                                       ([i '(param-1 param-2 param-3 param-4 param-5 param-6 param-7 param-8)]
+                                       ([i (in-naturals)]
                                         [p params])
-                               (env/extend new-env p i))])
+                               (env/extend new-env p (stack 0 (* wordsize i))))])
                (emit (label new-label))                                                ; Emit the function label
                ;; Warning: maybe an off-by-one error
                (compile-expr body new-env stack-bottom emit)                              ; Compile the body of function in this lable
