@@ -58,33 +58,43 @@
     [(node/app type (node/var _ func-name) args)                     ; TODO: look up the function arity
      (emit (label (gensym 'start_app)))
 
-     (with-saved-registers stack-bottom emit (map reg '(param-1 param-2 param-3 param-4))
+     ;; Save params
+     (for ([param '(param-1 param-2 param-3 param-4)]
+           [idx (in-naturals 0)])
+       (emit (movq (reg param) (stack (- stack-bottom (* wordsize idx))))))
 
-       (begin
-         ;; Move arguments into slots on the stack
-         (for ([arg args]                                                ; I love me some list comprehensions
-               [idx (in-naturals)]
-               [p-idx '(param-1 param-2 param-3 param-4)])
-           (emit (label (gensym (format "arg_~a" idx))))
-           (compile-expr arg env (- stack-bottom (* wordsize 5)))        ; FIXME: make this be based off the number of arguments
-           (emit (movq (reg 'ret-val) (stack (- stack-bottom (* wordsize idx)))))
-           (emit (label (gensym (format "arg_~a_done" idx)))))
+     (let ([new-stack-bottom (- stack-bottom (* wordsize 4))])
+       ;; Move arguments into slots on the stack
+       (for ([arg args]                                                ; I love me some list comprehensions
+             [idx (in-naturals)]
+             [p-idx '(param-1 param-2 param-3 param-4)])
+         (emit (label (gensym (format "arg_~a" idx))))
+         (compile-expr arg env (- new-stack-bottom (* wordsize 5)))        ; FIXME: make this be based off the number of arguments
+         (emit (movq (reg 'ret-val) (stack (- new-stack-bottom (* wordsize idx)))))
+         (emit (label (gensym (format "arg_~a_done" idx)))))
 
-         ;; All arguments computed; move them off the stack and into registers
-         (for ([p-idx '(param-1 param-2 param-3 param-4)]
-               [idx (in-naturals)])
-           (emit (movq (stack (- stack-bottom (* wordsize idx))) (reg p-idx))))
+       ;; All arguments computed; move them off the stack and into registers
+       (for ([p-idx '(param-1)] ; param-2 param-3 param-4)]
+             [idx (in-naturals)])
+         (emit (movq (stack (- new-stack-bottom (* wordsize idx))) (reg p-idx))))
 
-         ;; Normalize stack before call: we might have manually allocated
-         ;; some values on the stack, and we want to preserve them
-         (emit (addq (immediate (- stack-bottom wordsize)) (reg 'stack)))
+       ;; Normalize stack before call: we might have manually allocated
+       ;; some values on the stack, and we want to preserve them
+       #;(emit (addq new-stack-bottom (reg 'stack)))
+       ;; (emit (addq (- new-stack-bottom wordsize) (reg 'stack)))
 
-         ;; Call
-         (emit (call (env/var-info env func-name)))
+       ;; Call
+       (emit (call (env/var-info env func-name)))
 
-         ;; Restore old stack
-         (emit (subq (immediate (- stack-bottom wordsize)) (reg 'stack)))
-         ))]
+       ;; Restore old stack
+       #;(emit (subq new-stack-bottom (reg 'stack))))
+;       (emit (subq (- new-stack-bottom wordsize) (reg 'stack))))
+
+     ;; restore params
+     (for ([param '(param-1 param-2 param-3 param-4)]
+           [idx (in-naturals 0)])
+       (emit (movq (stack (- stack-bottom (* wordsize idx))) (reg param))))]
+
 
     [(node/labels _ lvars body)
      (compile-labels lvars body env stack-bottom emit)]
@@ -102,34 +112,6 @@
                  (reg 'ret-val)))]
 
     ))
-
-(define-syntax-rule (with-saved-registers stack-base emit regs . body)
-  ;; Pushes the specified locations onto the stack, sets the stack
-  ;; variable appropriately, emits the body code, then restores the
-  ;; registers
-
-  (begin
-    (emit (label "begin_save_registers"))
-
-    ;; save things
-    (for ([reg regs]
-          [idx (in-naturals 0)])
-      (emit (movq reg (stack (- stack-base (* wordsize idx))))))
-
-    ;; Push up the stack-bottom
-    (emit (addq (- stack-base (* wordsize (length regs))) (reg 'stack)))
-
-    body
-    
-    ;; Restore the stack-bottom to what it was
-    (emit (subq (- stack-base (* wordsize (length regs))) (reg 'stack)))
-
-    ;; restore things
-    (for ([reg regs]
-          [idx (in-naturals 0)])
-      (emit (movq reg (stack (- stack-base (* wordsize idx))))))
-
-    (emit (label "end_save_registers"))))
 
 (define (compile-let type bindings body env stack-bottom [emit emit-string])
   (if (null? bindings)
@@ -251,6 +233,19 @@ _scheme_entry:
   ;; This should be (120 . 5)
   (compile (parse '(labels ((f2 (code (n) (if (= n 1) n (* n (app f2 (- n 1))))))) (cons (let ((x 4)) (app f2 (+ x 1))) 5))))
   (compile (parse '(labels ((f2 (code (n) (if (= n 1) n (* n (app f2 (- n 1))))))) (cons (let ((x 5)) (app f2 x)) 5))))
+
+  (compile (parse '(labels ((f1 (code (n) (if (= n 0) 1 (* n (app f1 (- n 1))))))
+                            (f2 (code (n) (if (= n 1) n (* n (app f2 (- n 1))))))
+                            (f3 (code (n acc) (if (= n 0) acc (app f3 (- n 1) (* acc n)))))
+                            (f4 (code (acc n) (if (= 0 n) acc (app f4 (* acc n) (- n 1)))))
+                            (f5 (code (n) (app f3 n 1))))
+
+                           (let ((r-f1 (app f1 5))
+                                 (r-f2 (app f2 5))
+                                 (r-f3 (app f3 5 1))
+                                 (r-f4 (app f4 1 5))
+                                 (r-f5 (app f5 5)))
+                             (cons (cons (app f5 (- (app f5 3) 1)) (cons (cons r-f1 r-f2) r-f3)) (cons (* 12 (+ 2 8)) (cons r-f4 r-f5)))))))
 
   ;; This should be ((120 . ((120 . 120) . 120)) . (120 . (120 . (120 . 120))))
   (compile (parse '(labels ((f1 (code (n) (if (= n 0) 1 (* n (app f1 (- n 1))))))
