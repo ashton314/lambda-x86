@@ -18,7 +18,7 @@
 (define (convert-parse expr)
   (parse (cps expr)))
 
-;; Entry point. We assume that the expression has been alphetized and is in CPS.
+;; Entry point. We're not doing CPS
 (define (parse expr)
   (match expr
     ;; Lambda
