@@ -27,19 +27,15 @@
 size_t scheme_entry(size_t *heap);
 void format_val(size_t val);
 
-void beep() {
-  printf("beep\n");
-}
-
 int main(int argc, char** argv) {
   size_t *heap = malloc(heap_size);
-  printf("[INFO] heap addr: %p\n", heap);
+  /* printf("[INFO] heap addr: %p\n", heap); */
   size_t val = scheme_entry(heap);
 
-  printf("\n>>>LAMBDA x86 FINISHED<<<\n\n");
+  /* printf("\n>>>LAMBDA x86 FINISHED<<<\n\n"); */
 
   format_val(val);
-  printf("\n");
+  /* printf("\n"); */
   return 0;
 }
 
