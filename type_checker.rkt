@@ -13,6 +13,7 @@
 (define (lambda? sym) (and (member sym '(lambda λ)) (symbol? sym)))
 (define (bin-int-prim? sym) (and (member sym '(+ - * / =)) (symbol? sym)))
 (define (bin-prim? sym) (and (member sym '(cons car cdr)) (symbol? sym)))
+(define (uni-prim? sym) (and (member sym '(add1 zero? empty? null?)) (symbol? sym)))
 
 ;; Convert into CPS and parse
 (define (convert-parse expr)
@@ -64,6 +65,11 @@
      (let* ([cont-node (parse cont)]
             [arg-nodes (map (λ (arg) (parse arg)) args)])
        (node/app 'void cont-node arg-nodes))]
+
+    ;; Unary primitives
+    [`(,(? uni-prim? op) ,x)
+     (let ([x-node (parse x)])
+       (node/prim 'unknown op 1 (list x-node)))]
 
     ;; Integer primitives of two arguments
     [`(,(? bin-int-prim? op) ,x1 ,x2)
