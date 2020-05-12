@@ -25,14 +25,34 @@
     [(node/immediate _ num)
      (emit (movq (immediate num) (reg 'ret-val)))]
 
+    [(node/prim _ name arity args)
+     (compile-primitive stack env name arity args)]
+
     ))
+
+(define (compile-primitive stack env name arity args)
+  (match name
+    ['add1
+     (compile-ast (car args) stack env)
+     (emit (addq (immediate 1) (reg 'ret-val)))]
+    ['zero?
+     (compile-ast (car args) stack env)
+     (emit (num-equals (immediate 0) (reg 'ret-val)))
+     ]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [module+ test
+  ;; Compile constants
   (check-equal? (crc 42) "42")
-  (check-equal? (crc 45) "45")]
+  (check-equal? (crc 45) "45")
+
+  ;; Primitive operators
+  (check-equal? (crc '(add1 5)) "6")
+  (check-equal? (crc '(zero? 5)) "#f")
+  (check-equal? (crc '(zero? 0)) "#t")
+  ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Testing utilities
@@ -42,7 +62,6 @@
   (compile expr)
   (system "gcc compiler-output.s driver.c")
   (with-output-to-string (lambda () (system "./a.out"))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Output routines

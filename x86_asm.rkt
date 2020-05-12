@@ -55,6 +55,12 @@
 (define (cmpq a b)
   (format "cmpq ~a, ~a" a b))
 
+(define (sete short-reg)
+  (format "sete ~a" short-reg))
+
+(define (salq a b)
+  (format "salq ~a, ~a" a b))
+
 (define (je loc)
   (format "je _~a" loc))
 
