@@ -25,21 +25,31 @@
   ;; either compiled inline or compiled separately by the respective
   ;; routines
   (match ast
+
+    ;; Constants
     [(node/immediate _ num)
      (emit (movq (immediate num) (reg 'ret-val)))]
 
+    ;; Primitives
     [(node/prim _ name arity args)
      (compile-primitive stack env name arity args)]
 
+    ;; Let bindings
     [(node/let _ bindings body)
      (compile-let* stack env bindings body)]
 
+    ;; Variable references
     [(node/var _ name)
      (emit (movq (or (env/lookup env name) (error 'undefined-variable)) (reg 'ret-val)))]
 
+    ;; Conditionals
+    [(node/if _ condition t-case f-case)
+     (compile-if stack env condition t-case f-case)]
     ))
 
 (define (compile-primitive stack-bottom env name arity args)
+  ;; Compile our primitive operations: unary operators like `add1' and
+  ;; `zero?', as well as our binary operators
   (match name
     ['add1
      (compile-ast (car args) stack-bottom env)
@@ -70,6 +80,18 @@
                       (env/extend env (node/let-binding-variable binding) (stack stack-bottom))
                       (cdr bindings)
                       body))))
+
+(define (compile-if stack-bottom env condition t-case f-case)
+  (let ([l-false (gensym 'false_branch)]
+        [l-end   (gensym 'if_end)])
+    (compile-ast condition stack-bottom env)
+    (emit (cmpq (immediate #f) (reg 'ret-val)))
+    (emit (je l-false))
+    (compile-ast t-case stack-bottom env)
+    (emit (jmp l-end))
+    (emit (label l-false))
+    (compile-ast f-case stack-bottom env)
+    (emit (label l-end))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Environment manipulation
@@ -117,6 +139,20 @@
   (check-equal? (crc '(let ((x 1) (y 2)) (+ x y))) "3")
   (check-equal? (crc '(let ((x 2) (y 3)) (- (* x y) (+ x y)))) "1")
   (check-equal? (crc '(let ((x 2)) (+ x (let ((y 3) (z 4)) (+ (* x y) z))))) "12")
+  ;; check shadowing
+  (check-equal? (crc '(let ((x 2) (y 3))
+                        (+ (+ x y)
+                           (let ((y 10))
+                             (* x y))))) "25")
+
+  ;; Conditionals
+  (check-equal? (crc '(if #t 1 2)) "1")
+  (check-equal? (crc '(if #f 1 2)) "2")
+  (check-equal? (crc '(if (zero? (- 2 1)) 1 2)) "2")
+  (check-equal? (crc '(if (zero? (- 2 2)) 1 2)) "1")
+  (check-equal? (crc '(let ((x 2) (y 3))
+                        (let ((z (if (zero? (- (* x y) 6)) 1 2)))
+                          (* z 100)))) "100")
   ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

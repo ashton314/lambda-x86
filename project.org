@@ -1,4 +1,5 @@
 #+TITLE: Lambda-x86 Project Notes
+#+AUTHOR: Ashton Wiersdorf
 
 I've decided to build a quick-and-dirty compiler following _An Incremental Approach to Compiler Construction_ by Abdulaziz Ghuloum. I can build a bigger compiler later.
 
@@ -6,46 +7,12 @@ I've also decided to ditch continuation-passing style for this first draft. I'll
 
 I wanted to use stack-based parameter passing, but I gave up and am just using four registers instead. (I've forgotten a bit about how the stack works and I just wanted to move on.)
 
+But using registers for argument passing turned out to be rather complicated, so now I'm back to using the stack.
+
+The type checker/inference engine works alright, but I'm not using it at all right now. It uses bidirectional type checking with inference; I'll probably rewrite this to do a full Hindley-Milner type checking/inference engine later.
+
 * Tasks
-** TODO How could I use ~push~ and ~pop~?                       :enhancement:
-I'd like to be able to use x86's capacities to improve generated code
-performance. I might have to push this off and just have a static
-stack pointer
-** TODO Rewrite compiler to not use ~push~ and ~pop~ commands
-Turns out there's a new bug with ~let~ that will make using ~push~ and
-~pop~ difficult: I'm manually rewriting the stack pointer to get
-function calls to work, but that messes up my variable references
-
-** DONE Fix up parser to handle booleans
-   CLOSED: [2020-03-26 Thu 22:06]
-   :LOGBOOK:
-   - State "DONE"       from "TODO"       [2020-03-26 Thu 22:06]
-   :END:
-** DONE Finish parsing ~let~ nodes
-   CLOSED: [2020-03-27 Fri 20:30]
-   :LOGBOOK:
-   - State "DONE"       from "TODO"       [2020-03-27 Fri 20:30]
-   :END:
-** DONE Fix (cons (funcall) (any)) bug                                  :bug:
-   CLOSED: [2020-04-23 Thu 21:38]
-   :LOGBOOK:
-   - State "DONE"       from "TODO"       [2020-04-23 Thu 21:38]
-   :END:
-Trying to run something like this:
-
-#+BEGIN_SRC racket
-
-  (compile (parse '(labels ((f (code (n) (if (= n 0) 1 (* n (app f (- n 1)))))))
-                           (cons (app f 5) 6))))
-
-#+END_SRC
-
-Computes the factorial value correctly, but gives something that looks like a pointer for the ~cdr~.
-
 * Tasks for later
-** TODO Should I have a ~node/app~ for regular function calls, and a ~node/lapp~ for direct lambda calls?
-I think so. It's kind of like differentiating between ~kapp~ and regular ~app~.
-** TODO Write a tortue test for the compiler thus far
 ** TODO Fix up type checker                                     :enhancement:
 I wonder if there's a way to use the type information to make my assembler more efficient. (I bet there is; I'll leave that for an enhancement.)
 ** TODO Use type information to improve instruction choice      :enhancement:
@@ -101,48 +68,4 @@ _main:                                  ## @main
 .subsections_via_symbols
 
 #+END_SRC
-* Notebook
-** DONE Recursion bug
-   CLOSED: [2020-04-03 Fri 00:05]
-   :LOGBOOK:
-   - State "DONE"       from              [2020-04-03 Fri 00:05]
-   :END:
 
-These break:
-
-#+BEGIN_SRC racket
-(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (app f1 (+ b 1)))))) (app f1 1))))
-
-(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (let ((c (+ b 1))) (app f1 c)))))) (app f1 1))))
-#+END_SRC
-
-But these don't:
-
-#+BEGIN_SRC racket
-(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (let ((c (+ b 1))) (+ c 1)))))) (app f1 1))))
-
-(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (app f0 7))))) (app f1 1))))
-
-(compile (parse '(labels ((f0 (code (a) (+ a 1)))) (let ((a 1)) (app f0 (+ a 1))))))
-#+END_SRC
-
-Oh, oops. That's because the breaking ones are actually recursing infinitely.
-** Multi-value recursion bug
-
-This works:
-
-#+BEGIN_SRC racket
-
-  (compile (parse '(labels ((factorial (code (n) (if (= n 0) 1 (* n (app factorial (- n 1))))))) (app factorial 5))))
-
-#+END_SRC
-
-But this doesn't:
-
-#+BEGIN_SRC racket
-
-  (compile (parse '(labels ((factorial (code (n acc) (if (= n 0) acc (app factorial (- n 1) (* acc n)))))) (app factorial 5 1))))
-
-#+END_SRC
-
-I think it's because I'm not using my stack right: instead of writing values to absolute places on the stack, I should try to use push and pop. Else, check my useage of the stack. See page 276 in the textbook for a detailed description.
