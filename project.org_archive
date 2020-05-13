@@ -1,0 +1,182 @@
+#    -*- mode: org -*-
+
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* TODO How could I use ~push~ and ~pop~?                                               :enhancement:
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:54
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Tasks
+  :ARCHIVE_CATEGORY: project
+  :ARCHIVE_TODO: TODO
+  :END:
+I'd like to be able to use x86's capacities to improve generated code
+performance. I might have to push this off and just have a static
+stack pointer
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* TODO Rewrite compiler to not use ~push~ and ~pop~ commands
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:54
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Tasks
+  :ARCHIVE_CATEGORY: project
+  :ARCHIVE_TODO: TODO
+  :END:
+Turns out there's a new bug with ~let~ that will make using ~push~ and
+~pop~ difficult: I'm manually rewriting the stack pointer to get
+function calls to work, but that messes up my variable references
+
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* DONE Fix up parser to handle booleans
+  CLOSED: [2020-03-26 Thu 22:06]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:54
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Tasks
+  :ARCHIVE_CATEGORY: project
+  :ARCHIVE_TODO: DONE
+  :END:
+  :LOGBOOK:
+  - State "DONE"       from "TODO"       [2020-03-26 Thu 22:06]
+  :END:
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* DONE Finish parsing ~let~ nodes
+  CLOSED: [2020-03-27 Fri 20:30]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:54
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Tasks
+  :ARCHIVE_CATEGORY: project
+  :ARCHIVE_TODO: DONE
+  :END:
+  :LOGBOOK:
+  - State "DONE"       from "TODO"       [2020-03-27 Fri 20:30]
+  :END:
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* DONE Fix (cons (funcall) (any)) bug                                                          :bug:
+  CLOSED: [2020-04-23 Thu 21:38]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:54
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Tasks
+  :ARCHIVE_CATEGORY: project
+  :ARCHIVE_TODO: DONE
+  :END:
+   :LOGBOOK:
+   - State "DONE"       from "TODO"       [2020-04-23 Thu 21:38]
+   :END:
+Trying to run something like this:
+
+#+BEGIN_SRC racket
+
+  (compile (parse '(labels ((f (code (n) (if (= n 0) 1 (* n (app f (- n 1)))))))
+                           (cons (app f 5) 6))))
+
+#+END_SRC
+
+Computes the factorial value correctly, but gives something that looks like a pointer for the ~cdr~.
+
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* TODO Should I have a ~node/app~ for regular function calls, and a ~node/lapp~ for direct lambda calls?
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:54
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Tasks for later
+  :ARCHIVE_CATEGORY: project
+  :ARCHIVE_TODO: TODO
+  :END:
+I think so. It's kind of like differentiating between ~kapp~ and regular ~app~.
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* TODO Write a tortue test for the compiler thus far
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:54
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Tasks for later
+  :ARCHIVE_CATEGORY: project
+  :ARCHIVE_TODO: TODO
+  :END:
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* DONE Recursion bug
+  CLOSED: [2020-04-03 Fri 00:05]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:55
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Notebook
+  :ARCHIVE_CATEGORY: project
+  :ARCHIVE_TODO: DONE
+  :END:
+   :LOGBOOK:
+   - State "DONE"       from              [2020-04-03 Fri 00:05]
+   :END:
+
+These break:
+
+#+BEGIN_SRC racket
+(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (app f1 (+ b 1)))))) (app f1 1))))
+
+(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (let ((c (+ b 1))) (app f1 c)))))) (app f1 1))))
+#+END_SRC
+
+But these don't:
+
+#+BEGIN_SRC racket
+(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (let ((c (+ b 1))) (+ c 1)))))) (app f1 1))))
+
+(compile (parse '(labels ((f0 (code (a) (+ a 1))) (f1 (code (b) (if (= b 0) (app f0 b) (app f0 7))))) (app f1 1))))
+
+(compile (parse '(labels ((f0 (code (a) (+ a 1)))) (let ((a 1)) (app f0 (+ a 1))))))
+#+END_SRC
+
+Oh, oops. That's because the breaking ones are actually recursing infinitely.
+
+Archived entries from file /Users/ashton/Wiersdorf/lambda-x86/project.org
+
+
+* Multi-value recursion bug
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2020-05-12 Tue 22:55
+  :ARCHIVE_FILE: ~/Wiersdorf/lambda-x86/project.org
+  :ARCHIVE_OLPATH: Notebook
+  :ARCHIVE_CATEGORY: project
+  :END:
+
+This works:
+
+#+BEGIN_SRC racket
+
+  (compile (parse '(labels ((factorial (code (n) (if (= n 0) 1 (* n (app factorial (- n 1))))))) (app factorial 5))))
+
+#+END_SRC
+
+But this doesn't:
+
+#+BEGIN_SRC racket
+
+  (compile (parse '(labels ((factorial (code (n acc) (if (= n 0) acc (app factorial (- n 1) (* acc n)))))) (app factorial 5 1))))
+
+#+END_SRC
+
+I think it's because I'm not using my stack right: instead of writing values to absolute places on the stack, I should try to use push and pop. Else, check my useage of the stack. See page 276 in the textbook for a detailed description.

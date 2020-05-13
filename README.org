@@ -2,3 +2,7 @@
 #+AUTHOR: Ashton Wiersdorf
 
 This is a compiler for a typed lambda calculus targeting the x86 architecture. Includes a parser, type checker, and compiler.
+
+See [[file:project.org][project.org]] for more information about the current status of this compiler.
+
+The main entry point is in [[file:compiler.rkt][compiler.rkt]]; you can see examples of how to run it under the "Tests" header.
