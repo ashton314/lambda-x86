@@ -21,6 +21,9 @@
   (emit (ret)))
 
 (define (compile-ast ast stack env)
+  ;; Primary copmiler dispatch: each AST node is matched here and
+  ;; either compiled inline or compiled separately by the respective
+  ;; routines
   (match ast
     [(node/immediate _ num)
      (emit (movq (immediate num) (reg 'ret-val)))]
@@ -92,7 +95,7 @@
 (define (emit thing) (emit-string thing))
 
 (define (global-prelude [emitter emit-string])
-  (emitter ".text
+  (emitter "	.text
 	.p2align 4,,15
 	.globl _scheme_entry
 _scheme_entry:"))
