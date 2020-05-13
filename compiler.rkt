@@ -57,16 +57,24 @@
 
     ['zero?
      (compile-ast (car args) stack-bottom env)
-     (emit (num-equals (immediate 0) (reg 'ret-val)))
-     ]
+     (emit (num-equals (immediate 0) (reg 'ret-val)))]
+
+    ['cons
+     (compile-ast (car args) stack-bottom env)
+     (emit (movq (reg 'ret-val) (heap 0)))
+     (compile-ast (cadr args) stack-bottom env)
+     (emit (movq (reg 'ret-val) (heap wordsize)))
+     (emit (movq (reg 'heap) (reg 'ret-val)))
+     (emit (orq (raw-immediate 1) (reg 'ret-val)))                 ; tag our return value as pointing to a pair
+     (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))]
 
     [(? (λ (o) (member o '(+ - * /))) op)
      ;; Funny order because of `-`
      (compile-ast (cadr args) stack-bottom env)
      (emit (movq (reg 'ret-val) (stack stack-bottom)))
      (compile-ast (car args) (- stack-bottom wordsize) env)
-     (emit ((prim-bin-op op) (stack stack-bottom) (reg 'ret-val)))
-     ]))
+     (emit ((prim-bin-op op) (stack stack-bottom) (reg 'ret-val)))]
+    ))
 
 (define (compile-let* stack-bottom env bindings body)
   (if (null? bindings)
@@ -153,6 +161,11 @@
   (check-equal? (crc '(let ((x 2) (y 3))
                         (let ((z (if (zero? (- (* x y) 6)) 1 2)))
                           (* z 100)))) "100")
+
+  ;; Cons
+  (check-equal? (crc '(cons 1 2)) "(1 . 2)")
+  (check-equal? (crc '(cons 1 (+ 1 2))) "(1 . 3)")
+  (check-equal? (crc '(cons (* 2 3) (+ 1 2))) "(6 . 3)")
   ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -180,4 +193,5 @@
   (emitter "	.text
 	.p2align 4,,15
 	.globl _scheme_entry
-_scheme_entry:"))
+_scheme_entry:
+	movq %rdi, %r15"))
