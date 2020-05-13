@@ -17,7 +17,7 @@
   ;; Parse, and then compile the resulting expression
   (delete-file asm-file)
   (global-prelude)
-  (compile-ast (parse expr) 0 '())
+  (compile-ast (parse expr) (- wordsize) '())
   (emit (ret)))
 
 (define (compile-ast ast stack env)
@@ -30,14 +30,23 @@
 
     ))
 
-(define (compile-primitive stack env name arity args)
+(define (compile-primitive stack-bottom env name arity args)
   (match name
     ['add1
-     (compile-ast (car args) stack env)
+     (compile-ast (car args) stack-bottom env)
      (emit (addq (immediate 1) (reg 'ret-val)))]
+
     ['zero?
-     (compile-ast (car args) stack env)
+     (compile-ast (car args) stack-bottom env)
      (emit (num-equals (immediate 0) (reg 'ret-val)))
+     ]
+
+    [(? (λ (o) (member o '(+ - * /))) op)
+     ;; Funny order because of `-`
+     (compile-ast (cadr args) stack-bottom env)
+     (emit (movq (reg 'ret-val) (stack stack-bottom)))
+     (compile-ast (car args) (- stack-bottom wordsize) env)
+     (emit ((prim-bin-op op) (stack stack-bottom) (reg 'ret-val)))
      ]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,10 +57,16 @@
   (check-equal? (crc 42) "42")
   (check-equal? (crc 45) "45")
 
-  ;; Primitive operators
+  ;; Primitive unary operators
   (check-equal? (crc '(add1 5)) "6")
   (check-equal? (crc '(zero? 5)) "#f")
   (check-equal? (crc '(zero? 0)) "#t")
+
+  ;; Primitive binary operators
+  (check-equal? (crc '(+ 1 2)) "3")
+  (check-equal? (crc '(+ (+ 1 2) (+ 3 4))) "10")
+  (check-equal? (crc '(- 2 1)) "1")
+  (check-equal? (crc '(- (* 2 3) 1)) "5")
   ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
