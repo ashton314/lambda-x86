@@ -12,8 +12,8 @@
 
 (define (lambda? sym) (and (member sym '(lambda λ)) (symbol? sym)))
 (define (bin-int-prim? sym) (and (member sym '(+ - * / =)) (symbol? sym)))
-(define (bin-prim? sym) (and (member sym '(cons car cdr)) (symbol? sym)))
-(define (uni-prim? sym) (and (member sym '(add1 zero? empty? null?)) (symbol? sym)))
+(define (bin-prim? sym) (and (member sym '(cons)) (symbol? sym)))
+(define (uni-prim? sym) (and (member sym '(car cdr add1 zero? empty? null?)) (symbol? sym)))
 
 ;; Convert into CPS and parse
 (define (convert-parse expr)

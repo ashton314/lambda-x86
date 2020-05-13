@@ -68,6 +68,14 @@
      (emit (orq (raw-immediate 1) (reg 'ret-val)))                 ; tag our return value as pointing to a pair
      (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))]
 
+    ['car
+     (compile-ast (car args) stack-bottom env)
+     (emit (movq (mem #:offset -1 #:reg-b (reg 'ret-val)) (reg 'ret-val)))]
+
+    ['cdr
+     (compile-ast (car args) stack-bottom env)
+     (emit (movq (mem #:offset 7 #:reg-b (reg 'ret-val)) (reg 'ret-val)))]
+
     [(? (λ (o) (member o '(+ - * /))) op)
      ;; Funny order because of `-`
      (compile-ast (cadr args) stack-bottom env)
@@ -162,10 +170,15 @@
                         (let ((z (if (zero? (- (* x y) 6)) 1 2)))
                           (* z 100)))) "100")
 
-  ;; Cons
+  ;; Cons, car, cdr
   (check-equal? (crc '(cons 1 2)) "(1 . 2)")
   (check-equal? (crc '(cons 1 (+ 1 2))) "(1 . 3)")
   (check-equal? (crc '(cons (* 2 3) (+ 1 2))) "(6 . 3)")
+  (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (cons foo 1))) "((6 . 8) . 1)")
+  (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (car foo))) "6")
+  (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (cdr foo))) "8")
+  (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (car (cons foo 1)))) "(6 . 8)")
+  (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (cdr (cons foo 1)))) "1")
   ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -190,7 +203,7 @@
 (define (emit thing) (emit-string thing))
 
 (define (global-prelude [emitter emit-string])
-  (emitter "	.text
+  (emitter ".text
 	.p2align 4,,15
 	.globl _scheme_entry
 _scheme_entry:
