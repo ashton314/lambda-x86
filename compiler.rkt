@@ -31,6 +31,12 @@
     [(node/prim _ name arity args)
      (compile-primitive stack env name arity args)]
 
+    [(node/let _ bindings body)
+     (compile-let* stack env bindings body)]
+
+    [(node/var _ name)
+     (emit (movq (or (env/lookup env name) (error 'undefined-variable)) (reg 'ret-val)))]
+
     ))
 
 (define (compile-primitive stack-bottom env name arity args)
@@ -52,6 +58,39 @@
      (emit ((prim-bin-op op) (stack stack-bottom) (reg 'ret-val)))
      ]))
 
+(define (compile-let* stack-bottom env bindings body)
+  (if (null? bindings)
+      (compile-ast body stack-bottom env)
+      ;; Emit code for one binding
+      ;; Remember: we asssume stack-bottom is always free
+      (let ([binding (car bindings)])
+        (compile-ast (node/let-binding-value binding) stack-bottom env)
+        (emit (movq (reg 'ret-val) (stack stack-bottom)))
+        (compile-let* (- stack-bottom wordsize)
+                      (env/extend env (node/let-binding-variable binding) (stack stack-bottom))
+                      (cdr bindings)
+                      body))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Environment manipulation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (env/new) '())
+
+(define (env/extend env var location)
+  (cons (cons var location) env))
+
+(define (env/lookup env var)
+  (match env
+    ['() #f]
+    [(cons (cons v l) rest-env)
+     (if (eq? v var) l (env/lookup rest-env var))]))
+
+[module+ test
+  (let ([ctx (env/extend (env/new) 'foo 'integer)])
+    (check-eq? (env/lookup ctx 'foo) 'integer)
+    (check-eq? (env/lookup (env/extend ctx 'bar 'string) 'foo) 'integer)
+    (check-eq? (env/lookup (env/extend ctx 'bar 'string) 'bar) 'string))]
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -70,6 +109,14 @@
   (check-equal? (crc '(+ (+ 1 2) (+ 3 4))) "10")
   (check-equal? (crc '(- 2 1)) "1")
   (check-equal? (crc '(- (* 2 3) 1)) "5")
+
+  ;; Let bindings
+  (check-equal? (crc '(let ((x 1)) x)) "1")
+  (check-equal? (crc '(let ((x (+ 1 2))) x)) "3")
+  (check-equal? (crc '(let ((x (+ 1 2))) (* x 2))) "6")
+  (check-equal? (crc '(let ((x 1) (y 2)) (+ x y))) "3")
+  (check-equal? (crc '(let ((x 2) (y 3)) (- (* x y) (+ x y)))) "1")
+  (check-equal? (crc '(let ((x 2)) (+ x (let ((y 3) (z 4)) (+ (* x y) z))))) "12")
   ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -86,7 +133,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (write-to-asm thing)
-  #;(println (list 'emit: thing))
   (with-output-to-file asm-file (λ () (if (not (string-suffix? thing ":")) (display "\t") (void)) (displayln thing)) #:exists 'append))
 
 (define (emit-string thing [writer write-to-asm])
