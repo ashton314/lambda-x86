@@ -45,6 +45,10 @@
     ;; Conditionals
     [(node/if _ condition t-case f-case)
      (compile-if stack env condition t-case f-case)]
+
+    ;; Labels
+    [(node/labels _ bindings body)
+     (compile-labels stack env bindings body)]
     ))
 
 (define (compile-primitive stack-bottom env name arity args)
@@ -108,6 +112,28 @@
     (emit (label l-false))
     (compile-ast f-case stack-bottom env)
     (emit (label l-end))))
+
+(define (compile-labels stack-bottom env bindings body)
+  (let ([defs-end (gensym 'definition_end)])
+    (emit (jmp defs-end))
+    (let-values ([(new-stack new-env) (compile-bindings stack-bottom env bindings)])
+      (emit (label defs-end))
+      (compile-ast body new-stack new-env))))
+
+(define (compile-bindings stack-bottom env bindings)
+  (if (null? bindings)
+      (values stack-bottom env)
+      (let* ([bind (car bindings)]
+             [func-label (function-label (node/lvar-name bind))]
+             [new-env (env/extend env (node/lvar-name bind) func-label)]
+             [body-stack-start (- (* wordsize (+ 1 (length (node/lvar-params bind)))))])
+        (emit (label func-label))
+        (let ([body-env (for/fold ([body-env new-env])
+                              ([i (in-naturals 1)]
+                               [p (node/lvar-params bind)])
+                          (env/extend body-env p (stack (- (* wordsize i)))))])
+          (compile-ast (node/lvar-body bind) body-stack-start body-env))
+        (compile-bindings stack-bottom new-env (cdr bindings)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Environment manipulation
