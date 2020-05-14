@@ -49,6 +49,10 @@
     ;; Labels
     [(node/labels _ bindings body)
      (compile-labels stack env bindings body)]
+
+    ;; Function calls
+    [(node/app _ (node/var _ func-name) args)
+     (compile-application stack env func-name args)]
     ))
 
 (define (compile-primitive stack-bottom env name arity args)
@@ -132,8 +136,21 @@
                               ([i (in-naturals 1)]
                                [p (node/lvar-params bind)])
                           (env/extend body-env p (stack (- (* wordsize i)))))])
-          (compile-ast (node/lvar-body bind) body-stack-start body-env))
+          (compile-ast (node/lvar-body bind) body-stack-start body-env)
+          (emit (ret)))
         (compile-bindings stack-bottom new-env (cdr bindings)))))
+
+(define (compile-application stack-bottom env func args)
+  ;; Compile arguments
+  (for ([arg args]
+        [i (in-naturals 3)])
+    (compile-ast arg (- stack-bottom (* wordsize (+ 2 (length args)))) env)
+    (emit (movq (reg 'ret-val) (stack (- (* wordsize i))))))
+
+  ;; Emit call
+  (emit (subq (raw-immediate (* wordsize (+ 0 (length args)))) (reg 'stack)))
+  (emit (call (env/lookup env func)))
+  (emit (addq (raw-immediate (* wordsize (+ 0 (length args)))) (reg 'stack))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Environment manipulation

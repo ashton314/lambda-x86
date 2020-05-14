@@ -13,6 +13,7 @@ The type checker/inference engine works alright, but I'm not using it at all rig
 
 * Tasks
 * Tasks for later
+** TODO Check the number of arguments to a function at compile time
 ** TODO Fix up type checker                                     :enhancement:
 I wonder if there's a way to use the type information to make my assembler more efficient. (I bet there is; I'll leave that for an enhancement.)
 ** TODO Use type information to improve instruction choice      :enhancement:
