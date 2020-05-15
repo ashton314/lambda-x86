@@ -69,9 +69,11 @@
 
     ['cons
      (compile-ast (car args) stack-bottom env)
-     (emit (movq (reg 'ret-val) (heap 0)))
-     (compile-ast (cadr args) stack-bottom env)
+     (emit (movq (reg 'ret-val) (stack stack-bottom)))
+     (compile-ast (cadr args) (- stack-bottom wordsize) env)
      (emit (movq (reg 'ret-val) (heap wordsize)))
+     (emit (movq (stack stack-bottom) (reg 'ret-val)))
+     (emit (movq (reg 'ret-val) (heap 0)))
      (emit (movq (reg 'heap) (reg 'ret-val)))
      (emit (orq (raw-immediate 1) (reg 'ret-val)))                 ; tag our return value as pointing to a pair
      (emit (addq (raw-immediate (* 2 wordsize)) (reg 'heap)))]
@@ -133,8 +135,8 @@
              [body-stack-start (- (* wordsize (+ 1 (length (node/lvar-params bind)))))])
         (emit (label func-label))
         (let ([body-env (for/fold ([body-env new-env])
-                              ([i (in-naturals 1)]
-                               [p (node/lvar-params bind)])
+                                  ([i (in-naturals 1)]
+                                   [p (node/lvar-params bind)])
                           (env/extend body-env p (stack (- (* wordsize i)))))])
           (compile-ast (node/lvar-body bind) body-stack-start body-env)
           (emit (ret)))
@@ -222,6 +224,7 @@
   (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (cdr foo))) "8")
   (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (car (cons foo 1)))) "(6 . 8)")
   (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (cdr (cons foo 1)))) "1")
+  (check-equal? (crc '(cons 1 (cons 2 (cons 3 (cons 4 5))))) "(1 . (2 . (3 . (4 . 5))))")
 
   ;; Functions
   (check-equal? (crc '(labels ((f (code (n) (+ n 1)))) (app f 3))) "4")
@@ -238,19 +241,24 @@
 
   (check-equal?
    (crc '(labels ((f1 (code (n) (if (zero? n) 1 (* n (app f1 (- n 1))))))
-                   (f2 (code (n) (if (zero? (- n 1)) n (* n (app f2 (- n 1))))))
-                   (f3 (code (n acc) (if (zero? n) acc (app f3 (- n 1) (* acc n)))))
-                   (f4 (code (acc n) (if (zero? n) acc (app f4 (* acc n) (- n 1)))))
-                   (f5 (code (n) (app f3 n 1))))
+                  (f2 (code (n) (if (zero? (- n 1)) n (* n (app f2 (- n 1))))))
+                  (f3 (code (n acc) (if (zero? n) acc (app f3 (- n 1) (* acc n)))))
+                  (f4 (code (acc n) (if (zero? n) acc (app f4 (* acc n) (- n 1)))))
+                  (f5 (code (n) (app f3 n 1))))
 
-                  (let ((r-f1 (app f1 5))
-                        (r-f2 (app f2 5))
-                        (r-f3 (app f3 5 1))
-                        (r-f4 (app f4 1 5))
-                        (r-f5 (app f5 5)))
-                    (cons (cons (app f5 (- (app f5 3) 1)) (cons (cons r-f1 r-f2) r-f3)) (cons (* 12 (+ 2 8)) (cons r-f4 (cons
-                                                                                                                         (let ((x 4)) (app f2 (+ x 1)))
-                                                                                                                         r-f5)))))))
+                 (let ((r-f1 (app f1 5))
+                       (r-f2 (app f2 5))
+                       (r-f3 (app f3 5 1))
+                       (r-f4 (app f4 1 5))
+                       (r-f5 (app f5 5)))
+                   (cons
+                    (cons (app f5 (- (app f5 3) 1))
+                          (cons
+                           (cons r-f1 r-f2) r-f3))
+                    (cons (* 12 (+ 2 8))
+                          (cons r-f4
+                                (cons (let ((x 4)) (app f2 (+ x 1)))
+                                      r-f5)))))))
    "((120 . ((120 . 120) . 120)) . (120 . (120 . (120 . 120))))")
   ]
 
