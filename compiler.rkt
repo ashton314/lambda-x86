@@ -143,14 +143,14 @@
 (define (compile-application stack-bottom env func args)
   ;; Compile arguments
   (for ([arg args]
-        [i (in-naturals 3)])
+        [i (in-naturals 1)])
     (compile-ast arg (- stack-bottom (* wordsize (+ 2 (length args)))) env)
-    (emit (movq (reg 'ret-val) (stack (- (* wordsize i))))))
+    (emit (movq (reg 'ret-val) (stack (- stack-bottom (* wordsize i))))))
 
   ;; Emit call
-  (emit (subq (raw-immediate (* wordsize (+ 0 (length args)))) (reg 'stack)))
+  (emit (addq (raw-immediate (+ wordsize stack-bottom)) (reg 'stack)))
   (emit (call (env/lookup env func)))
-  (emit (addq (raw-immediate (* wordsize (+ 0 (length args)))) (reg 'stack))))
+  (emit (subq (raw-immediate (+ wordsize stack-bottom)) (reg 'stack))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Environment manipulation
@@ -222,6 +222,36 @@
   (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (cdr foo))) "8")
   (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (car (cons foo 1)))) "(6 . 8)")
   (check-equal? (crc '(let ((foo (cons (* 2 3) (+ 1 7)))) (cdr (cons foo 1)))) "1")
+
+  ;; Functions
+  (check-equal? (crc '(labels ((f (code (n) (+ n 1)))) (app f 3))) "4")
+  (check-equal? (crc '(labels ((f (code (a b) (+ (* a 2) (* 2 b))))) (app f 2 3))) "10")
+  (check-equal? (crc '(labels ((f (code (n) (if (zero? n) 1 (* n (app f (- n 1))))))) (app f 5))) "120")
+  (check-equal? (crc '(labels ((f (code (n acc) (if (zero? n) acc (app f (- n 1) (* n acc)))))) (app f 5 1))) "120")
+
+  (check-equal? (crc '(labels ((f (code (a b) (+ a (* 2 b))))) (app f 2 3))) "8")
+  (check-equal? (crc '(labels ((f (code (a b) (+ a (* 2 b))))) (let ((a 2) (b 3)) (app f a b)))) "8")
+  (check-equal? (crc '(labels ((f (code (a b) (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons (app f a b) a)))) "(8 . 2)")
+  (check-equal? (crc '(labels ((f (code (a b) (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons (app f a b) b)))) "(8 . 3)")
+  (check-equal? (crc '(labels ((f (code (a b) (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons a (app f a b))))) "(2 . 8)")
+  (check-equal? (crc '(labels ((f (code (a b) (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons b (app f a b))))) "(3 . 8)")
+
+  (check-equal?
+   (crc '(labels ((f1 (code (n) (if (zero? n) 1 (* n (app f1 (- n 1))))))
+                   (f2 (code (n) (if (zero? (- n 1)) n (* n (app f2 (- n 1))))))
+                   (f3 (code (n acc) (if (zero? n) acc (app f3 (- n 1) (* acc n)))))
+                   (f4 (code (acc n) (if (zero? n) acc (app f4 (* acc n) (- n 1)))))
+                   (f5 (code (n) (app f3 n 1))))
+
+                  (let ((r-f1 (app f1 5))
+                        (r-f2 (app f2 5))
+                        (r-f3 (app f3 5 1))
+                        (r-f4 (app f4 1 5))
+                        (r-f5 (app f5 5)))
+                    (cons (cons (app f5 (- (app f5 3) 1)) (cons (cons r-f1 r-f2) r-f3)) (cons (* 12 (+ 2 8)) (cons r-f4 (cons
+                                                                                                                         (let ((x 4)) (app f2 (+ x 1)))
+                                                                                                                         r-f5)))))))
+   "((120 . ((120 . 120) . 120)) . (120 . (120 . (120 . 120))))")
   ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
