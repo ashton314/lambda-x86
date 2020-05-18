@@ -4,3 +4,7 @@ a.out: driver.c compiler-output.s
 .PHONY: run
 run: a.out
 	./a.out
+
+.PHONY: test
+test:
+	raco test compiler.rkt
