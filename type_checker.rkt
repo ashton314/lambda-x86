@@ -29,10 +29,13 @@
     [`(,(? lambda? _) ,xs ,body)
      (node/lambda 'unknown xs (parse body))]
 
+    [`(closure ,label ,bindings)
+     (node/closure 'unknown label bindings)]
+
     ;; Labels
-    [`(labels ([,(? symbol? lvar) (code (,(? symbol? params) ...) ,f-body)] ...) ,body)
+    [`(labels ([,(? symbol? lvar) (code (,(? symbol? params) ...) (,(? symbol? free-vars) ...) ,f-body)] ...) ,body)
      (node/labels 'unknown
-                  (map (λ (lv lp lb) (node/lvar 'void lv lp (parse lb))) lvar params f-body)
+                  (map (λ (lv lp lf lb) (node/lvar 'void lv lp lf (parse lb))) lvar params free-vars f-body)
                   (parse body))]
 
     ;; Type annotation
@@ -100,9 +103,9 @@
                           (node/prim 'integer '+ 2 (list (node/var 'unknown 'x) (node/var 'unknown 'y)))))]
 
 [module+ test
-  (check-equal? (parse '(labels ([y (code (a b) (* a b))]) (app y 1 2)))
+  (check-equal? (parse '(labels ([y (code (a b) () (* a b))]) (app y 1 2)))
                 (node/labels 'unknown
-                             (list (node/lvar 'void 'y '(a b)
+                             (list (node/lvar 'void 'y '(a b) '()
                                               (node/prim 'integer '* 2 (list (node/var 'unknown 'a)
                                                                              (node/var 'unknown 'b)))))
                              (node/app 'unknown (node/var 'unknown 'y)

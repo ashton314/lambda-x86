@@ -44,14 +44,13 @@
   [(define (typeof node) (node/labels-type node))
    (define (set-type! node new-type) (set-node/labels-type! node new-type))])
 
-;; Label-variable (a symbol -> (code (var ...) expr) mapping)
+;; Label-variable (a symbol -> (code (param ...) (free-var ...) expr) mapping)
 (struct node/lvar
-  (type name params body)
+  (type name params free-vars body)
   #:mutable #:transparent
   #:methods gen:node
   [(define (typeof node) (node/labels-type node))
    (define (set-type! node new-type) (set-node/labels-type! node new-type))])
-
 
 ;; Function application
 (struct node/app
@@ -105,6 +104,14 @@
   #:methods gen:node
   [(define (typeof node) (node/let-binding-type node))
    (define (set-type! node new-type) (set-node/let-binding-type! node new-type))])
+
+;; Closure context
+(struct node/closure
+  (type fun-label var-bindings)
+  #:mutable #:transparent
+  #:methods gen:node
+  [(define (typeof node) (node/closure-type node))
+   (define (set-type! node new-type) (set-node/closure-type! node new-type))])
 
 ;; A lambda
 (struct node/lambda
