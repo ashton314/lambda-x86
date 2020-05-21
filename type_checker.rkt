@@ -29,8 +29,8 @@
     [`(,(? lambda? _) ,xs ,body)
      (node/lambda 'unknown xs (parse body))]
 
-    [`(closure ,label ,bindings)
-     (node/closure 'unknown label bindings)]
+    [`(closure ,label ,bindings ...)
+     (node/closure 'unknown label (map parse bindings))]
 
     ;; Labels
     [`(labels ([,(? symbol? lvar) (code (,(? symbol? params) ...) (,(? symbol? free-vars) ...) ,f-body)] ...) ,body)

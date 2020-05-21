@@ -22,20 +22,16 @@
 #define bool_mask    127
 #define bool_shift   7
 
-#define heap_size    1024
+#define heap_size    8192
 
 size_t scheme_entry(size_t *heap);
 void format_val(size_t val);
 
 int main(int argc, char** argv) {
   size_t *heap = malloc(heap_size);
-  /* printf("[INFO] heap addr: %p\n", heap); */
   size_t val = scheme_entry(heap);
 
-  /* printf("\n>>>LAMBDA x86 FINISHED<<<\n\n"); */
-
   format_val(val);
-  /* printf("\n"); */
   return 0;
 }
 
@@ -45,6 +41,9 @@ void format_val(size_t val) {
   }
   else if ((val & fixnum_mask) == fixnum_tag) {
     printf("%zu", val >> fixnum_shift);
+  }
+  else if ((val & fixnum_mask) == closure_tag) {
+    printf("#<closure %zx>", val);
   }
   else if ((val & fixnum_mask) == cons_tag) {
     val--;

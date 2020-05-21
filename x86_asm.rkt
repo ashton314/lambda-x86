@@ -21,6 +21,9 @@
 
 ;; These by and large just format the assembly
 
+(define (leaq addr dest-reg)
+  (format "lea ~a, ~a" addr dest-reg))
+
 (define (movq val dest)
   ;; TODO: I'd like to generalize this so that it can handle memory locations
   (format "movq ~a, ~a" val dest))

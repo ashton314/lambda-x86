@@ -50,6 +50,10 @@
     [(node/labels _ bindings body)
      (compile-labels stack env bindings body)]
 
+    ;; Closures
+    [(node/closure _ label bindings)
+     (compile-closure stack env label bindings)]
+
     ;; Function calls
     [(node/app _ (node/var _ func-name) args)
      (compile-application stack env func-name args)]
@@ -131,16 +135,40 @@
       (values stack-bottom env)
       (let* ([bind (car bindings)]
              [func-label (function-label (node/lvar-name bind))]
-             [new-env (env/extend env (node/lvar-name bind) func-label)]
+             [new-env (env/extend env (node/lvar-name bind) func-label)] ; I might have troubles here later when I try doing closure stuff coupled with recursion
              [body-stack-start (- (* wordsize (+ 1 (length (node/lvar-params bind)))))])
         (emit (label func-label))
-        (let ([body-env (for/fold ([body-env new-env])
+        (let* ([closure-env (for/fold ([closure-env new-env])
+                                      ([i (in-naturals 1)]
+                                       [p (node/lvar-free-vars bind)])
+                              (env/extend closure-env p (heap (* wordsize i))))]
+               [body-env (for/fold ([body-env closure-env])
                                   ([i (in-naturals 1)]
                                    [p (node/lvar-params bind)])
                           (env/extend body-env p (stack (- (* wordsize i)))))])
           (compile-ast (node/lvar-body bind) body-stack-start body-env)
           (emit (ret)))
         (compile-bindings stack-bottom new-env (cdr bindings)))))
+
+(define (compile-closure stack-bottom env fun-label bindings)
+  ;; Compile bindings
+  (for ([arg bindings]
+        [i (in-naturals 0)])
+    (compile-ast arg (- stack-bottom (* wordsize (+ 1 (length bindings)))) env)
+    (emit (movq (reg 'ret-val) (stack (- stack-bottom (* wordsize i))))))
+
+  ;; Move all the bindings into place
+  (for ([arg bindings]
+        [i (in-naturals 0)])
+    (emit (movq (stack (- stack-bottom (* wordsize i))) (reg 'ret-val)))
+    (emit (movq (reg 'ret-val) (heap (* wordsize (+ i 1))))))
+
+  ;; Move the label into place, return, tag, and increment pointer
+  (emit (leaq fun-label (reg 'ret-val)))
+  (emit (movq (reg 'ret-val) (heap 0)))
+  (emit (movq (reg 'heap) (reg 'ret-val)))
+  (emit (orq (raw-immediate 6) (reg 'ret-val)))
+  (emit (addq (raw-immediate (* (+ 1 (length bindings)) wordsize)) (reg 'heap))))
 
 (define (compile-application stack-bottom env func args)
   ;; Compile arguments
