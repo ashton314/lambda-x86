@@ -164,7 +164,8 @@
     (emit (movq (reg 'ret-val) (heap (* wordsize (+ i 1))))))
 
   ;; Move the label into place, return, tag, and increment pointer
-  (emit (leaq fun-label (reg 'ret-val)))
+  ;; (emit (movq (reg 'ret-val) (format "[~a]" (or (env/lookup env fun-label) (error 'undefined-function)))))
+  (emit (movq (raw-immediate (or (env/lookup env fun-label) (error 'undefined-function))) (reg 'ret-val)))
   (emit (movq (reg 'ret-val) (heap 0)))
   (emit (movq (reg 'heap) (reg 'ret-val)))
   (emit (orq (raw-immediate 6) (reg 'ret-val)))
