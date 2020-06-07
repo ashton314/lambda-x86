@@ -6,6 +6,7 @@
 #define fixnum_tag   0
 #define fixnum_shift 2
 
+#define data_mask    7
 #define cons_tag     1
 #define vector_tag   2
 #define string_tag   3
@@ -42,7 +43,7 @@ void format_val(size_t val) {
   else if ((val & fixnum_mask) == fixnum_tag) {
     printf("%zu", val >> fixnum_shift);
   }
-  else if ((val & fixnum_mask) == closure_tag) {
+  else if ((val & data_mask) == closure_tag) {
     printf("#<closure %zx>", val);
   }
   else if ((val & fixnum_mask) == cons_tag) {

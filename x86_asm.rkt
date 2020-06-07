@@ -21,8 +21,11 @@
 
 ;; These by and large just format the assembly
 
+(define (move-func-rax func-name)
+  (format "leaq _~a(%rip), %rax" func-name))
+
 (define (leaq addr dest-reg)
-  (format "lea ~a, ~a" addr dest-reg))
+  (format "leaq ~a, ~a" addr dest-reg))
 
 (define (movq val dest)
   ;; TODO: I'd like to generalize this so that it can handle memory locations
