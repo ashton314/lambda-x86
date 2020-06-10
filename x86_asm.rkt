@@ -76,6 +76,10 @@
 (define (orq reg1 reg2)
   (format "orq ~a, ~a" reg1 reg2))
 
+(define (xorq reg1 reg2)
+  (format "xorq ~a, ~a" reg1 reg2))
+
+
 ;; convert val to its immediate representation
 (define (immediate val)
   (match val
@@ -103,6 +107,9 @@
 
 (define (call label)
   (format "call _~a" label))
+
+(define (call-indirect reg)
+  (format "callq *~a" reg))
 
 (define (push place)
   (format "push ~a" place))
@@ -137,14 +144,7 @@
     ['ret-val-small  "%al"]
     ['stack          "%rsp"]
     ['heap           "%r15"]
-    ['param-1        "%rdi"]
-    ['param-2        "%rsi"]
-    ['param-3        "%rdx"]
-    ['param-4        "%rcx"]
-    ['param-5        "%r9"]
-    ['param-6        "%r10"]
-    ['param-7        "%r11"]
-    ['param-8        "%r12"]
+    ['closure        "%rdi"]
     ['swap-1         "%r13"]))
 
 [module+ test

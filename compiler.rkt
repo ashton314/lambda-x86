@@ -55,8 +55,8 @@
      (compile-closure stack env label bindings)]
 
     ;; Function calls
-    [(node/app _ (node/var _ func-name) args)
-     (compile-application stack env func-name args)]
+    [(node/app _ func-expr args)
+     (compile-application stack env func-expr args)]
     ))
 
 (define (compile-primitive stack-bottom env name arity args)
@@ -131,6 +131,7 @@
       (compile-ast body new-stack new-env))))
 
 (define (compile-bindings stack-bottom env bindings)
+  ;; Labels bindings---the `code' form from "Incremental Approach"
   (if (null? bindings)
       (values stack-bottom env)
       (let* ([bind (car bindings)]
@@ -141,7 +142,7 @@
         (let* ([closure-env (for/fold ([closure-env new-env])
                                       ([i (in-naturals 1)]
                                        [p (node/lvar-free-vars bind)])
-                              (env/extend closure-env p (heap (* wordsize i))))]
+                              (env/extend closure-env p (mem #:offset (* wordsize i) #:reg-b (reg 'closure))))]
                [body-env (for/fold ([body-env closure-env])
                                   ([i (in-naturals 1)]
                                    [p (node/lvar-params bind)])
@@ -163,8 +164,7 @@
     (emit (movq (stack (- stack-bottom (* wordsize i))) (reg 'ret-val)))
     (emit (movq (reg 'ret-val) (heap (* wordsize (+ i 1))))))
 
-  ;; Move the label into place, return, tag, and increment pointer
-  ;; (emit (movq (reg 'ret-val) (format "[~a]" (or (env/lookup env fun-label) (error 'undefined-function)))))
+  ;; Move the label into place, return pointer, tag as closure, and increment heap free pointer
   (emit (move-func-rax (or (env/lookup env fun-label) (error 'undefined-function))))
   (emit (movq (reg 'ret-val) (heap 0)))
   (emit (movq (reg 'heap) (reg 'ret-val)))
@@ -174,14 +174,25 @@
 (define (compile-application stack-bottom env func args)
   ;; Compile arguments
   (for ([arg args]
-        [i (in-naturals 1)])
-    (compile-ast arg (- stack-bottom (* wordsize (+ 2 (length args)))) env)
+        [i (in-naturals 2)])
+    (compile-ast arg (- stack-bottom (* wordsize (+ 3 (length args)))) env)
     (emit (movq (reg 'ret-val) (stack (- stack-bottom (* wordsize i))))))
 
+  ;; Save the current closure pointer
+  (emit (movq (reg 'closure) (stack stack-bottom)))
+
+  ;; Compile the function (returns a closure)
+  (compile-ast func (- stack-bottom (* wordsize (+ 3 (length args)))) env)
+  (emit (xorq (raw-immediate 6) (reg 'ret-val))) ; untag
+  (emit (movq (reg 'ret-val) (reg 'closure)))
+
   ;; Emit call
-  (emit (addq (raw-immediate (+ wordsize stack-bottom)) (reg 'stack)))
-  (emit (call (env/lookup env func)))
-  (emit (subq (raw-immediate (+ wordsize stack-bottom)) (reg 'stack))))
+  (emit (addq (raw-immediate (+ (* wordsize 2) stack-bottom)) (reg 'stack)))
+  (emit (call-indirect (reg 'closure)))
+  (emit (subq (raw-immediate (+ (* wordsize 2) stack-bottom)) (reg 'stack)))
+  
+  ;; Restore closure pointer
+  (emit (movq (stack stack-bottom) (reg 'closure))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Environment manipulation
