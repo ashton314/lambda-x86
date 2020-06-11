@@ -70,3 +70,65 @@ _main:                                  ## @main
 
 #+END_SRC
 
+
+* Notes
+** Debugging closure calling
+
+addr of closure: 0x0000000100000d28
+                 
+heap location:   0x0000000101008200
+
+Verdict: I'm jumping to %rdi, not (%rdi); what would happen if I ran *(%rdi)
+
+That works!
+
+#+begin_example
+(lldb) re r
+General Purpose Registers:
+       rax = 0x0000000101008200
+       rbx = 0x0000000000000000
+       rcx = 0x0000000000000000
+       rdx = 0x0000000000000010
+       rdi = 0x0000000101008200
+       rsi = 0x000000010011ba00
+       rbp = 0x00007ffeefbff720
+       rsp = 0x00007ffeefbff700
+        r8 = 0x0000000002000001
+        r9 = 0x0000000000000003
+       r10 = 0x9e3779b97f4a7c55
+       r11 = 0x0000000000000007
+       r12 = 0x0000000000000000
+       r13 = 0x0000000000000000
+       r14 = 0x0000000000000000
+       r15 = 0x0000000101008208
+       rip = 0x0000000100000d70  a.out`definition_end38349 + 49
+    rflags = 0x0000000000000216
+        cs = 0x000000000000002b
+        fs = 0x0000000000000000
+        gs = 0x0000000000000000
+
+(lldb) s
+Process 46879 stopped
+,* thread #1, queue = 'com.apple.main-thread', stop reason = instruction step into
+    frame #0: 0x0000000101008200
+->  0x101008200: subb   %cl, 0x10000(%rip)
+    0x101008206: addb   %al, (%rax)
+    0x101008208: addb   %al, (%rax)
+    0x10100820a: addb   %al, (%rax)
+Target 0: (a.out) stopped.
+(lldb) d
+->  0x101008200: subb   %cl, 0x10000(%rip)
+    0x101008206: addb   %al, (%rax)
+    0x101008208: addb   %al, (%rax)
+    0x10100820a: addb   %al, (%rax)
+    0x10100820c: addb   %al, (%rax)
+    0x10100820e: addb   %al, (%rax)
+    0x101008210: addb   %al, (%rax)
+    0x101008212: addb   %al, (%rax)
+    0x101008214: addb   %al, (%rax)
+    0x101008216: addb   %al, (%rax)
+    0x101008218: addb   %al, (%rax)
+    0x10100821a: addb   %al, (%rax)
+    0x10100821c: addb   %al, (%rax)
+    0x10100821e: addb   %al, (%rax)
+#+end_example
