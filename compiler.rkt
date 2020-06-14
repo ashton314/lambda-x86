@@ -312,6 +312,12 @@
                    (cons (app (closure f 3 7) y)
                          (app (closure f 2 1) z)))))
    "((12 . 11) . (24 . 13))")
+  (check-equal?
+   (crc '(labels ((adder_core (code (n) (a) (+ a n)))
+                             (make_adder (code (init-a) () (closure adder_core init-a))))
+                            (let ((add_5 (app (closure make_adder) 5)))
+                              (app add_5 1))))
+   "6")
   ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
