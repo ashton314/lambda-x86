@@ -267,39 +267,51 @@
   (check-equal? (crc '(cons 1 (cons 2 (cons 3 (cons 4 5))))) "(1 . (2 . (3 . (4 . 5))))")
 
   ;; Functions
-  (check-equal? (crc '(labels ((f (code (n) () (+ n 1)))) (app f 3))) "4")
-  (check-equal? (crc '(labels ((f (code (a b) () (+ (* a 2) (* 2 b))))) (app f 2 3))) "10")
-  (check-equal? (crc '(labels ((f (code (n) () (if (zero? n) 1 (* n (app f (- n 1))))))) (app f 5))) "120")
-  (check-equal? (crc '(labels ((f (code (n acc) () (if (zero? n) acc (app f (- n 1) (* n acc)))))) (app f 5 1))) "120")
+  (check-equal? (crc '(labels ((f (code (n) () (+ n 1)))) (app (closure f) 3))) "4")
+  (check-equal? (crc '(labels ((f (code (a b) () (+ (* a 2) (* 2 b))))) (app (closure f) 2 3))) "10")
+  (check-equal? (crc '(labels ((f (code (n) () (if (zero? n) 1 (* n (app (closure f) (- n 1))))))) (app (closure f) 5))) "120")
+  (check-equal? (crc '(labels ((f (code (n acc) () (if (zero? n) acc (app (closure f) (- n 1) (* n acc)))))) (app (closure f) 5 1))) "120")
 
-  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (app f 2 3))) "8")
-  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (app f a b)))) "8")
-  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons (app f a b) a)))) "(8 . 2)")
-  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons (app f a b) b)))) "(8 . 3)")
-  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons a (app f a b))))) "(2 . 8)")
-  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons b (app f a b))))) "(3 . 8)")
+  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (app (closure f) 2 3))) "8")
+  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (app (closure f) a b)))) "8")
+  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons (app (closure f) a b) a)))) "(8 . 2)")
+  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons (app (closure f) a b) b)))) "(8 . 3)")
+  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons a (app (closure f) a b))))) "(2 . 8)")
+  (check-equal? (crc '(labels ((f (code (a b) () (+ a (* 2 b))))) (let ((a 2) (b 3)) (cons b (app (closure f) a b))))) "(3 . 8)")
 
   (check-equal?
-   (crc '(labels ((f1 (code (n) () (if (zero? n) 1 (* n (app f1 (- n 1))))))
-                  (f2 (code (n) () (if (zero? (- n 1)) n (* n (app f2 (- n 1))))))
-                  (f3 (code (n acc) () (if (zero? n) acc (app f3 (- n 1) (* acc n)))))
-                  (f4 (code (acc n) () (if (zero? n) acc (app f4 (* acc n) (- n 1)))))
-                  (f5 (code (n) () (app f3 n 1))))
+   (crc '(labels ((f1 (code (n) () (if (zero? n) 1 (* n (app (closure f1) (- n 1))))))
+                  (f2 (code (n) () (if (zero? (- n 1)) n (* n (app (closure f2) (- n 1))))))
+                  (f3 (code (n acc) () (if (zero? n) acc (app (closure f3) (- n 1) (* acc n)))))
+                  (f4 (code (acc n) () (if (zero? n) acc (app (closure f4) (* acc n) (- n 1)))))
+                  (f5 (code (n) () (app (closure f3) n 1))))
 
-                 (let ((r-f1 (app f1 5))
-                       (r-f2 (app f2 5))
-                       (r-f3 (app f3 5 1))
-                       (r-f4 (app f4 1 5))
-                       (r-f5 (app f5 5)))
+                 (let ((r-f1 (app (closure f1) 5))
+                       (r-f2 (app (closure f2) 5))
+                       (r-f3 (app (closure f3) 5 1))
+                       (r-f4 (app (closure f4) 1 5))
+                       (r-f5 (app (closure f5) 5)))
                    (cons
-                    (cons (app f5 (- (app f5 3) 1))
+                    (cons (app (closure f5) (- (app (closure f5) 3) 1))
                           (cons
                            (cons r-f1 r-f2) r-f3))
                     (cons (* 12 (+ 2 8))
                           (cons r-f4
-                                (cons (let ((x 4)) (app f2 (+ x 1)))
+                                (cons (let ((x 4)) (app (closure f2) (+ x 1)))
                                       r-f5)))))))
    "((120 . ((120 . 120) . 120)) . (120 . (120 . (120 . 120))))")
+
+  ;; Closures with closed-over values
+  (check-equal?
+   (crc '(labels ((f (code (n) (m o) (cons (* n m) (+ o n)))))
+                 (let ((y 4) (z 12)) (app (closure f 3 7) y))))
+   "(12 . 11)")
+  (check-equal?
+   (crc '(labels ((f (code (n) (m o) (cons (* n m) (+ o n)))))
+                 (let ((y 4) (z 12))
+                   (cons (app (closure f 3 7) y)
+                         (app (closure f 2 1) z)))))
+   "((12 . 11) . (24 . 13))")
   ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
