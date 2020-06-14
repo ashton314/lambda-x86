@@ -109,7 +109,7 @@
   (format "call _~a" label))
 
 (define (call-indirect reg)
-  (format "callq *~a" reg))
+  (format "callq *(~a)" reg))
 
 (define (push place)
   (format "push ~a" place))

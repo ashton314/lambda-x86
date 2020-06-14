@@ -187,9 +187,9 @@
   (emit (movq (reg 'ret-val) (reg 'closure)))
 
   ;; Emit call
-  (emit (addq (raw-immediate (+ (* wordsize 2) stack-bottom)) (reg 'stack)))
+  (emit (addq (raw-immediate stack-bottom) (reg 'stack)))
   (emit (call-indirect (reg 'closure)))
-  (emit (subq (raw-immediate (+ (* wordsize 2) stack-bottom)) (reg 'stack)))
+  (emit (subq (raw-immediate stack-bottom) (reg 'stack)))
   
   ;; Restore closure pointer
   (emit (movq (stack stack-bottom) (reg 'closure))))
